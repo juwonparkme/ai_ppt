@@ -51,6 +51,12 @@ def project_file(path_value):
     return str(Path(settings.BASE_DIR) / path)
 
 
+def normalize_output_title(raw_title):
+    title = raw_title.strip().replace(" ", "_")
+    title = re.sub(r"\.(pptx|ppt|txt)$", "", title, flags=re.IGNORECASE)
+    return title.rstrip("._") or "presentation"
+
+
 def is_pptxgenjs_backend():
     return settings.PPT_RENDER_BACKEND == "pptxgenjs"
 
@@ -80,16 +86,24 @@ def decode_local_download_token(token):
     return Path(urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")).resolve()
 
 
+def resolve_existing_local_file(file_path):
+    if file_path.exists():
+        return file_path
+    legacy_path = Path(f"{file_path}.pptx")
+    if legacy_path.exists():
+        return legacy_path
+    raise Http404("생성된 PPTX 파일을 찾을 수 없습니다.")
+
+
 def resolve_local_download_path(token):
-    file_path = decode_local_download_token(token)
+    requested_path = decode_local_download_token(token)
     output_root = Path(settings.PPT_RENDER_OUTPUT_DIR).resolve()
     try:
-        file_path.relative_to(output_root)
+        requested_path.relative_to(output_root)
     except ValueError as exc:
         raise Http404("허용되지 않은 파일 경로입니다.") from exc
-    if not file_path.exists():
-        raise Http404("생성된 PPTX 파일을 찾을 수 없습니다.")
-    return file_path
+    actual_path = resolve_existing_local_file(requested_path)
+    return requested_path, actual_path
 
 
 def store_last_result(request, *, title, download_url, preview_items, backend):
@@ -103,6 +117,37 @@ def store_last_result(request, *, title, download_url, preview_items, backend):
 
 def normalize_preview_items(preview_items, kind):
     return [{"kind": kind, "value": item} for item in preview_items]
+
+
+def build_history_entries(user_histories):
+    entries = []
+    for history in user_histories:
+        download_url = ""
+        external_url = ""
+        if history.backend == "pptxgenjs":
+            if history.file_path:
+                try:
+                    resolve_existing_local_file(Path(history.file_path))
+                except Http404:
+                    pass
+                else:
+                    download_url = reverse(
+                        "download_slide",
+                        args=[encode_local_download_token(history.file_path)],
+                    )
+            elif history.ppt_url.startswith("/download_slide/local-"):
+                download_url = history.ppt_url
+        elif history.ppt_url:
+            external_url = history.ppt_url
+
+        entries.append(
+            {
+                "record": history,
+                "download_url": download_url,
+                "external_url": external_url,
+            }
+        )
+    return entries
 
 
 def render_with_pptxgenjs(request, title_text, template_key):
@@ -185,6 +230,7 @@ def user_update(request):
 def profile_view(request):
     user_id=request.user.id
     user_histories = UserHistory.objects.filter(user_id=user_id).order_by('-create_date')
+    history_entries = build_history_entries(user_histories)
 
     if request.method == 'POST':
         form = ProfileUpdateForm(request.POST, instance=request.user)
@@ -195,11 +241,11 @@ def profile_view(request):
             form.save()
             messages.success(request, "프로필이 성공적으로 업데이트되었습니다.")
             # return redirect('profile')  # 새로고침하면서 반영됨
-            return render(request, 'blog/profile.html', {'form': form, 'user_histories': user_histories})  # 👈 데이터 유지
+            return render(request, 'blog/profile.html', {'form': form, 'history_entries': history_entries})  # 👈 데이터 유지
     else:
         form = ProfileUpdateForm(instance=request.user)
 
-    return render(request, 'blog/profile.html', {'form': form, 'user_histories': user_histories})
+    return render(request, 'blog/profile.html', {'form': form, 'history_entries': history_entries})
 
 
 def delete_user_history(request):
@@ -261,7 +307,7 @@ def prompt(request):
             max_tokens=30,
         )
 
-        filename = filename_response.choices[0].message.content.strip().replace(" ", "_")
+        filename = normalize_output_title(filename_response.choices[0].message.content)
         output_title = filename
 
         if is_pptxgenjs_backend():
@@ -283,7 +329,7 @@ def prompt(request):
             SLIDE_TITLE_TEXT = output_title
             UserHistory.objects.create(
                 user_id=user_id,
-                ppt_url=render_result["download_url"],
+                ppt_url="",
                 ppt_title=output_title,
                 backend="pptxgenjs",
                 file_path=render_result["file_path"],
@@ -1009,11 +1055,11 @@ def download_slide(request, presentation_id):
 
     try:
         if presentation_id.startswith("local-"):
-            file_path = resolve_local_download_path(presentation_id)
+            requested_path, file_path = resolve_local_download_path(presentation_id)
             return FileResponse(
                 file_path.open("rb"),
                 as_attachment=True,
-                filename=file_path.name,
+                filename=requested_path.name,
                 content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             )
 

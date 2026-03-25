@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase, override_settings
 
-from blog.services.ppt_renderer import render_presentation
+from blog.services.ppt_renderer import parse_renderer_stdout, render_presentation
 from blog.slide_spec import build_slide_spec
 
 
@@ -69,3 +69,20 @@ class PptRendererServiceTests(SimpleTestCase):
         args = mock_run.call_args.kwargs
         self.assertEqual(args["cwd"], Path("/tmp/ppt-renderer"))
         self.assertTrue((output_dir / "spec.json").exists())
+
+    def test_parse_renderer_stdout_ignores_npm_banner_lines(self):
+        stdout = """
+> ppt-renderer@0.1.0 render
+> tsx src/cli.ts render --input spec.json --output out.pptx
+
+{
+  "outputPath": "/tmp/out.pptx",
+  "slideCount": 2,
+  "template": "modern-a"
+}
+"""
+
+        result = parse_renderer_stdout(stdout)
+
+        self.assertEqual(result["outputPath"], "/tmp/out.pptx")
+        self.assertEqual(result["slideCount"], 2)

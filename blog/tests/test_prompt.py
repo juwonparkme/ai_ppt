@@ -1,3 +1,4 @@
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
@@ -6,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from blog.models import UserHistory
-from blog.views import encode_local_download_token
+from blog.views import encode_local_download_token, normalize_output_title
 
 
 def fake_openai_response(content):
@@ -24,6 +25,10 @@ class PromptViewTests(TestCase):
             email="prompt@example.com",
             nickname="prompt-user",
         )
+
+    def test_normalize_output_title_strips_file_extensions(self):
+        self.assertEqual(normalize_output_title("python_ppt_관한.pptx"), "python_ppt_관한")
+        self.assertEqual(normalize_output_title("python_ppt_관한.txt"), "python_ppt_관한")
 
     @override_settings(PPT_RENDER_BACKEND="legacy-google")
     @patch("blog.views.create_slides", return_value="https://slides.example/presentation")
@@ -113,14 +118,14 @@ class PromptViewTests(TestCase):
 
         history = UserHistory.objects.get(user=self.user)
         self.assertEqual(history.ppt_title, "Generated_Name")
-        self.assertTrue(history.ppt_url.startswith("/download_slide/local-"))
+        self.assertEqual(history.ppt_url, "")
         self.assertEqual(history.backend, "pptxgenjs")
         self.assertEqual(history.status, "completed")
         self.assertEqual(history.file_path, "/tmp/rendered/Generated_Name/Generated_Name.pptx")
 
         session = self.client.session
         self.assertEqual(session["last_result"]["backend"], "pptxgenjs")
-        self.assertEqual(session["last_result"]["download_url"], history.ppt_url)
+        self.assertTrue(session["last_result"]["download_url"].startswith("/download_slide/local-"))
 
     @override_settings(PPT_RENDER_BACKEND="pptxgenjs")
     @patch("blog.views.render_with_pptxgenjs", side_effect=RuntimeError("renderer failed"))
@@ -164,3 +169,56 @@ class PromptViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.presentationml.presentation")
         self.assertIn('attachment; filename="deck.pptx"', response["Content-Disposition"])
+
+    @override_settings(PPT_RENDER_OUTPUT_DIR="/tmp/rendered-presentations")
+    def test_download_slide_uses_legacy_pptx_file_with_normalized_filename(self):
+        output_dir = Path("/tmp/rendered-presentations/test-legacy")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        requested_path = output_dir / "legacy-deck.pptx"
+        legacy_path = Path(f"{requested_path}.pptx")
+        legacy_path.write_bytes(b"pptx-data")
+
+        token = encode_local_download_token(requested_path)
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("download_slide", args=[token]), HTTP_HOST="127.0.0.1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('attachment; filename="legacy-deck.pptx"', response["Content-Disposition"])
+
+    def test_prompt_post_creates_pptx_file_on_disk(self):
+        temp_dir = Path(tempfile.mkdtemp(prefix="ppt-auto-render-"))
+
+        def fake_render(spec, output_dir, output_name):
+            output_path = output_dir / output_name
+            output_path.write_bytes(b"pptx-data")
+            return {"outputPath": str(output_path), "slideCount": len(spec["slides"])}
+
+        fake_client = SimpleNamespace(
+            chat=SimpleNamespace(completions=Mock(create=Mock(return_value=fake_openai_response("Disk Deck"))))
+        )
+
+        with override_settings(PPT_RENDER_BACKEND="pptxgenjs", PPT_RENDER_OUTPUT_DIR=str(temp_dir)):
+            with patch("blog.views.get_openai_client", return_value=fake_client):
+                with patch(
+                    "blog.views.create_ppt_text",
+                    return_value=(
+                        "#Slide: 1\n#Header: Disk Deck\n#Content: 소개\n\n"
+                        "#Slide: 2\n#Header: 목차\n#Content:\n1. 개요\n2. 결론"
+                    ),
+                ):
+                    with patch(
+                        "blog.views.create_ppt_detail_text",
+                        return_value="#Slide: 3\n#Header: Summary\n#Content:\n- 마무리",
+                    ):
+                        with patch("blog.views.render_presentation", side_effect=fake_render):
+                            self.client.force_login(self.user)
+                            response = self.client.post(
+                                reverse("prompt"),
+                                {"presentation_id": "template-123", "user-input": "AI topic"},
+                                HTTP_HOST="127.0.0.1",
+                            )
+
+        self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
+        history = UserHistory.objects.get(user=self.user, ppt_title="Disk_Deck")
+        self.assertTrue(Path(history.file_path).exists())

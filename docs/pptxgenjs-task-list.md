@@ -79,7 +79,7 @@ read_when:
 
 - [x] `UserHistory` 필드 재검토
 - [x] 필요 시 `file_path`, `status`, `error_message` 추가
-- [ ] 기존 `ppt_url` 의미 재정의 또는 별도 모델 도입
+- [x] 기존 `ppt_url` 의미 재정의 또는 별도 모델 도입
 - [x] 생성 결과 다운로드 URL 매핑
 
 완료 기준:
@@ -105,7 +105,7 @@ read_when:
 ### 통합
 
 - [x] 로그인 후 생성 요청 테스트
-- [ ] `.pptx` 파일 존재 테스트
+- [x] `.pptx` 파일 존재 테스트
 - [x] 다운로드 응답 테스트
 
 완료 기준:
