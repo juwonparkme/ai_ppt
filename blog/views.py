@@ -1,4 +1,5 @@
 import pickle
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
 from django.shortcuts import render, redirect
 from googleapiclient.errors import HttpError
@@ -16,11 +17,14 @@ from google.oauth2 import service_account
 import os, re, openai, json, io
 import random
 import logging
-from django.http import HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.urls import reverse
 
 from .models import UserHistory
+from .services.ppt_renderer import render_presentation
+from .slide_spec import build_slide_spec
 
 # OpenAI 설정
 SLIDE_TITLE_TEXT = ' '
@@ -45,6 +49,78 @@ def project_file(path_value):
     if path.is_absolute():
         return str(path)
     return str(Path(settings.BASE_DIR) / path)
+
+
+def is_pptxgenjs_backend():
+    return settings.PPT_RENDER_BACKEND == "pptxgenjs"
+
+
+def reserve_render_output_dir(base_name):
+    output_root = Path(settings.PPT_RENDER_OUTPUT_DIR)
+    output_root.mkdir(parents=True, exist_ok=True)
+
+    candidate_name = base_name
+    candidate_dir = output_root / candidate_name
+    while candidate_dir.exists():
+        candidate_name = f"{base_name}_{random.randint(0, 100)}"
+        candidate_dir = output_root / candidate_name
+
+    candidate_dir.mkdir(parents=True, exist_ok=False)
+    return candidate_name, candidate_dir
+
+
+def encode_local_download_token(output_path):
+    encoded = urlsafe_b64encode(str(output_path).encode("utf-8")).decode("ascii")
+    return f"local-{encoded.rstrip('=')}"
+
+
+def decode_local_download_token(token):
+    encoded = token.removeprefix("local-")
+    padded = encoded + "=" * (-len(encoded) % 4)
+    return Path(urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")).resolve()
+
+
+def resolve_local_download_path(token):
+    file_path = decode_local_download_token(token)
+    output_root = Path(settings.PPT_RENDER_OUTPUT_DIR).resolve()
+    try:
+        file_path.relative_to(output_root)
+    except ValueError as exc:
+        raise Http404("허용되지 않은 파일 경로입니다.") from exc
+    if not file_path.exists():
+        raise Http404("생성된 PPTX 파일을 찾을 수 없습니다.")
+    return file_path
+
+
+def store_last_result(request, *, title, download_url, preview_items, backend):
+    request.session["last_result"] = {
+        "title": title,
+        "download_url": download_url,
+        "preview_items": preview_items,
+        "backend": backend,
+    }
+
+
+def normalize_preview_items(preview_items, kind):
+    return [{"kind": kind, "value": item} for item in preview_items]
+
+
+def render_with_pptxgenjs(request, title_text, template_key):
+    overview_text = create_ppt_text(title_text)
+    detail_text = create_ppt_detail_text(overview_text=overview_text)
+    spec = build_slide_spec(title_text, overview_text, detail_text, template=template_key)
+    output_title, output_dir = reserve_render_output_dir(title_text)
+    output_name = f"{output_title}.pptx"
+    render_result = render_presentation(spec.to_dict(), output_dir, output_name)
+    download_token = encode_local_download_token(Path(render_result["outputPath"]))
+    download_url = reverse("download_slide", args=[download_token])
+    preview_items = [slide.title for slide in spec.slides]
+    return {
+        "output_title": output_title,
+        "download_url": download_url,
+        "file_path": str(Path(render_result["outputPath"])),
+        "preview_items": preview_items,
+    }
 
 def signup(request):
     if request.user.is_authenticated:
@@ -188,25 +264,71 @@ def prompt(request):
         filename = filename_response.choices[0].message.content.strip().replace(" ", "_")
         output_title = filename
 
-        idx = random.randint(0, 100)
+        if is_pptxgenjs_backend():
+            try:
+                render_result = render_with_pptxgenjs(request, output_title, "modern-a")
+            except Exception as exc:
+                UserHistory.objects.create(
+                    user_id=user_id,
+                    ppt_url="",
+                    ppt_title=output_title,
+                    backend="pptxgenjs",
+                    status="failed",
+                    error_message=str(exc),
+                )
+                messages.error(request, "PPT 생성에 실패했습니다. 다시 시도해주세요.")
+                return redirect("profile")
 
-        try:
-            os.makedirs(output_title)
-        except:
-            output_title = f"{filename}_{idx}"
-            os.makedirs(output_title)
+            output_title = render_result["output_title"]
+            SLIDE_TITLE_TEXT = output_title
+            UserHistory.objects.create(
+                user_id=user_id,
+                ppt_url=render_result["download_url"],
+                ppt_title=output_title,
+                backend="pptxgenjs",
+                file_path=render_result["file_path"],
+                status="completed",
+            )
+            store_last_result(
+                request,
+                title=output_title,
+                download_url=render_result["download_url"],
+                preview_items=normalize_preview_items(render_result["preview_items"], "text"),
+                backend="pptxgenjs",
+            )
+        else:
+            idx = random.randint(0, 100)
 
-        SLIDE_TITLE_TEXT = output_title
+            try:
+                os.makedirs(output_title)
+            except:
+                output_title = f"{filename}_{idx}"
+                os.makedirs(output_title)
 
-        print(filename)
-        ppt_text = create_ppt_text(output_title)
+            SLIDE_TITLE_TEXT = output_title
 
-        split_slides(ppt_text, index=0)
+            print(filename)
+            ppt_text = create_ppt_text(output_title)
 
-        ppt_detail_text = create_ppt_detail_text()
-        split_slides(ppt_detail_text, index=2)
-        ppt_link=create_slides(presentation_id, output_title)
-        UserHistory.objects.create(user_id=user_id, ppt_url=ppt_link, ppt_title=output_title)
+            split_slides(ppt_text, index=0)
+
+            ppt_detail_text = create_ppt_detail_text()
+            split_slides(ppt_detail_text, index=2)
+            ppt_link=create_slides(presentation_id, output_title)
+            UserHistory.objects.create(
+                user_id=user_id,
+                ppt_url=ppt_link,
+                ppt_title=output_title,
+                backend="legacy-google",
+                status="completed",
+            )
+            store_last_result(
+                request,
+                title=output_title,
+                download_url=reverse("download_slide", args=[presentation_id]),
+                preview_items=[],
+                backend="legacy-google",
+            )
 
         # print(presentation_id, "입력받은 ID값")
 
@@ -253,19 +375,22 @@ def create_ppt_text(topic):
 
     return response.choices[0].message.content.strip()
 
-def create_ppt_detail_text():
+def create_ppt_detail_text(overview_text=None):
     global SLIDE_TITLE_TEXT
     print(SLIDE_TITLE_TEXT)
     """GPT를 활용하여 PPT 내용을 자동 생성 (슬라이드 개수 & 구조 강제)"""
     client = get_openai_client()
-    try:
-        file_path = f"{SLIDE_TITLE_TEXT}/0_목차.txt"
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()  # 처음 1200자만 읽기
-    except FileNotFoundError:
-        file_path = f"{SLIDE_TITLE_TEXT}/1_목차.txt"
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()  # 처음 1200자만 읽기
+    if overview_text is not None:
+        content = overview_text
+    else:
+        try:
+            file_path = f"{SLIDE_TITLE_TEXT}/0_목차.txt"
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except FileNotFoundError:
+            file_path = f"{SLIDE_TITLE_TEXT}/1_목차.txt"
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
 
     prompt = f"""
     Write an a about "{content}". Follow these rules strictly:
@@ -684,25 +809,32 @@ def get_slide_thumbnail(presentation_id, slide_index=0):
 
 # 뷰에서 슬라이드 썸네일을 HTML로 렌더링
 def display_slides(request):
-    # 프레젠테이션 ID 목록
+    result = request.session.get("last_result")
+    if result:
+        return render(
+            request,
+            "blog/result_tap.html",
+            {
+                "result_title": result.get("title"),
+                "download_url": result.get("download_url"),
+                "preview_items": result.get("preview_items", []),
+                "backend": result.get("backend"),
+            },
+        )
+
     global presentation_id
-    # presentation_ids = [
-    #     '1Kh5ol8ogtFhA8c1GZysm4rVxhU68pjgJA_PqVCz453Q',  # 예시 프레젠테이션 ID
-    # ]
-
-    # 각 프레젠테이션의 첫 번째 슬라이드 썸네일 URL을 가져옴
-    # first_slide_images = []
-    # for presentation_id in presentation_ids:
-    #     first_slide_image_url = get_slide_thumbnail(presentation_id)
-    #     if first_slide_image_url:
-    #         first_slide_images.append(first_slide_image_url)
-
-    slides=get_slides_list()
-    # print(f"main title: {slides} len: {len(slides)}")
-    print(presentation_id)
-
-    # HTML 템플릿에 데이터를 전달
-    return render(request, 'blog/result_tap.html', {'slides': slides, 'presentation_id': presentation_id})
+    slides = get_slides_list()
+    download_url = reverse("download_slide", args=[presentation_id])
+    return render(
+        request,
+        "blog/result_tap.html",
+        {
+            "result_title": presentation_id,
+            "download_url": download_url,
+            "preview_items": normalize_preview_items(slides, "image"),
+            "backend": "legacy-google",
+        },
+    )
 
 # slides_list
 
@@ -851,7 +983,8 @@ def download_pptx(presentation_id):
         # Django 환경이면 HttpResponse 반환
         if HttpResponse:
             response = HttpResponse(
-                fh, content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                fh.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
             response["Content-Disposition"] = f'attachment; filename="{presentation_name}.pptx"'
             print(response)
@@ -875,20 +1008,17 @@ def download_slide(request, presentation_id):
     #     return HttpResponse("Error: Missing presentation_id", status=400)
 
     try:
+        if presentation_id.startswith("local-"):
+            file_path = resolve_local_download_path(presentation_id)
+            return FileResponse(
+                file_path.open("rb"),
+                as_attachment=True,
+                filename=file_path.name,
+                content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            )
+
         # logger.info(f"Starting download_pptx for {presentation_id}")
-        # response = download_pptx(presentation_id) #원본
-        download_pptx(presentation_id)
-        # 프레젠테이션 다운로드
-        # pptx_file = download_pptx(presentation_id)
-        # print(f"download_pptx_result: {pptx_file}")
-        #
-        # # HTTP 응답 설정
-        # response = HttpResponse(pptx_file, content_type='application/vnd.openxmlformats-officedocument.presentationml.presentation')
-        # response['Content-Disposition'] = f'attachment; filename={presentation_id}.pptx'
-        # print(f"response about download{response}")
-        # logger.info(f"Response type: {type(response)}")
-        # return HttpResponse("File downloaded successfully!")
-        return redirect('result')
+        return download_pptx(presentation_id)
 
     except Exception as e:
         # 에러 로그 기록

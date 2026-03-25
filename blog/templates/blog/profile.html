@@ -43,12 +43,20 @@
                  {% for history in user_histories %}
                     <div class="text-wrap   per-2">
                          <div class="ppt-title">{{ history.ppt_title }}</div>
-                            <a href="{{ history.ppt_url }}" class="ppt-url"> {{ history.ppt_url }}
-                             <label class="label_check_box">
-                                    <input type="checkbox" id="presentation_id" class="single-checkbox" name=presentation_id value="{{ history.id }}">
-                                    <span class="custom-checkbox"></span>
-                             </label>
-                            </a>
+                            <div class="ppt-url">상태: {{ history.status }} / 엔진: {{ history.backend }}</div>
+                            {% if history.ppt_url %}
+                                <a href="{{ history.ppt_url }}" class="ppt-url">{{ history.ppt_url }}</a>
+                            {% endif %}
+                            {% if history.file_path %}
+                                <div class="ppt-url">파일: {{ history.file_path }}</div>
+                            {% endif %}
+                            {% if history.error_message %}
+                                <div class="ppt-url">오류: {{ history.error_message }}</div>
+                            {% endif %}
+                            <label class="label_check_box">
+                                <input type="checkbox" id="presentation_id" class="single-checkbox" name=presentation_id value="{{ history.id }}">
+                                <span class="custom-checkbox"></span>
+                            </label>
                     </div><br><br>
                  {% empty %}
                     <div class="text-wrapper-2">No history available.</div>

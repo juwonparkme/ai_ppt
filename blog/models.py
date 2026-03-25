@@ -10,7 +10,6 @@
 #         return self.username
 
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth import get_user_model
 from django.db import models
 from django.conf import settings
 
@@ -32,10 +31,23 @@ class CustomUser(AbstractUser):
         return self.username
 
 class UserHistory(models.Model):
+    BACKEND_CHOICES = [
+        ("legacy-google", "Google Slides"),
+        ("pptxgenjs", "PptxGenJS"),
+    ]
+    STATUS_CHOICES = [
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     ppt_title = models.CharField(max_length=500)
     ppt_url = models.CharField(max_length=500)
+    backend = models.CharField(max_length=32, choices=BACKEND_CHOICES, default="legacy-google")
+    file_path = models.CharField(max_length=500, blank=True, default="")
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="completed")
+    error_message = models.TextField(blank=True, default="")
     create_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.ppt_url}"
+        return f"{self.user.username} - {self.ppt_title} ({self.status})"

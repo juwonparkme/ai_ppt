@@ -144,24 +144,31 @@
         <div class="title_section">
             <div class="text-content-title">
                 <div class="subtitle">completed successfully </div>
+                {% if result_title %}
+                    <div class="title">{{ result_title }}</div>
+                {% endif %}
             </div>
             <div>
-                {% if presentation_id %}
-                   <a href="{% url 'download_slide' presentation_id %}" class="button-start-button">다운로드</a>
-{#                    <button class="button-start-button" onclick="location.href='{% url 'download_slide' presentation_id %}'">다운로드</button>#}
-{#                        <button class="button-start-button" onclick="console.log('{% url 'download_slide' presentation_id %}')">다운로드</button>#}
-
-
+                {% if download_url %}
+                   <a href="{{ download_url }}" class="button-start-button">다운로드</a>
                 {% else %}
-
-                    <p>Error: Missing presentation_id</p>
+                    <p>Error: Missing download_url</p>
                 {% endif %}
             </div>
         </div>
         <div class="img_section">
             <div class="img_panel">
-                {% for image in slides %}
-                        <img class="image" src="{{ image }}" alt="{% static 'css/img/error.png' %}"/>
+                {% for preview in preview_items %}
+                    {% if preview.kind == "image" %}
+                        <img class="image" src="{{ preview.value }}" alt="{% static 'css/img/error.png' %}"/>
+                    {% else %}
+                        <div class="slide-thumbnail">
+                            <div>Slide {{ forloop.counter }}</div>
+                            <strong>{{ preview.value }}</strong>
+                        </div>
+                    {% endif %}
+                {% empty %}
+                    <p>미리보기 데이터가 아직 없습니다.</p>
                 {% endfor %}
             </div>
         </div>

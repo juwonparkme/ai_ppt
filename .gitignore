@@ -1,14 +1,8 @@
 .env
 .venv/
-venv/
-.idea/
 __pycache__/
 *.pyc
 db.sqlite3
-token.json
-client_secret.json
-credentials.json
-presentation_data.json
-Cache/
-*.pptx
-*.txt/
+ppt-renderer/node_modules/
+ppt-renderer/*.pptx
+tmp/
