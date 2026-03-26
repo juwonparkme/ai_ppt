@@ -1,77 +1,124 @@
+{% extends "site_app_base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <link rel="stylesheet" href="{% static 'css/Home_styleguide.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/Home_globals.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/profile_style.css' %}" />
-    <style>
-    .ppt-url {
-        display: block; /* 링크를 블록 요소로 설정하여 줄 바꿈 */
-        margin-top: 10px; /* 위쪽 여백 추가 */
-    }
-    </style>
-</head>
-<body class="body_size">
-    <div class="main-my-page">
-        <div class="header">
-            <div class="block">
-                <img class="LOGO-PT" src="{% static 'css/img/LOGO_PT.png' %}" onclick="location.href='{% url 'home' %}'"/>
-            </div>
-            <div class="text-wrap">프로필</div>
+
+{% block title %}My Profile | SlideArchitect{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-12">
+    <header class="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div class="max-w-2xl">
+            <h1 class="text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">My Profile</h1>
+            <p class="mt-3 text-base leading-7 text-on-surface-variant">
+                `figma 1/내정보.html` 레이아웃 기준. 계정 정보와 생성 기록을 한 화면에서 관리합니다.
+            </p>
         </div>
-        <div class="my_information">
-            <div class="information_block">
-                <div class="image-profile">
-                    <img class="shape" src="{% static 'css/img/default_profile_user.png' %}" />
-                </div>
-                <div class="info">
-                    <div class="part">
-{#                        <img class="line" src="{% static 'css/img/white_line_bar.svg' %}" />#}
-                        <div class="text-wrapper">Username</div>
-                        <div class="text-wrapper-2">{{ user.username }}</div>
-                        <div class="text-wrapper">Email</div>
-                        <div class="text-wrapper-2">{{ user.email }}</div>
+        <div class="flex gap-3">
+            <a class="inline-flex items-center justify-center rounded-xl border border-outline-variant/20 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-surface-container-low" href="{% url 'password_change' %}">비밀번호 변경</a>
+            <a class="inline-flex items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90" href="{% url 'prompt' %}">새 프레젠테이션</a>
+        </div>
+    </header>
+
+    <div class="space-y-8">
+        <section class="relative overflow-hidden rounded-[28px] border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-soft">
+            <div class="absolute right-0 top-0 h-64 w-64 rounded-full bg-primary/5 blur-3xl"></div>
+            <form class="relative z-10" method="post">
+                {% csrf_token %}
+                {{ form.id }}
+                <div class="mb-8 flex flex-col gap-8 md:flex-row">
+                    <div class="flex flex-col items-center gap-4">
+                        <img alt="기본 프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" src="{% static 'css/img/default_profile_user.png' %}" />
+                        <span class="text-[10px] font-bold uppercase tracking-[0.26em] text-on-surface-variant">Profile Photo</span>
+                    </div>
+                    <div class="grid flex-1 gap-6 md:grid-cols-2">
+                        <div class="space-y-2">
+                            <label class="ml-1 text-xs font-semibold text-on-surface-variant" for="id_username">Username</label>
+                            <input class="w-full rounded-2xl border-none bg-surface-container-low p-4 font-medium text-on-surface focus:ring-2 focus:ring-primary-fixed/30" id="id_username" name="username" type="text" value="{{ form.username.value|default:user.username }}" />
+                        </div>
+                        <div class="space-y-2">
+                            <label class="ml-1 text-xs font-semibold text-on-surface-variant" for="id_email">Email Address</label>
+                            <input class="w-full rounded-2xl border-none bg-surface-container-low p-4 font-medium text-on-surface focus:ring-2 focus:ring-primary-fixed/30" id="id_email" name="email" type="email" value="{{ form.email.value|default:user.email }}" />
+                        </div>
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="ml-1 text-xs font-semibold text-on-surface-variant">Studio Summary</label>
+                            <div class="rounded-2xl bg-surface-container-low p-4 text-sm leading-7 text-on-surface-variant">
+                                최근 작업 {{ history_entries|length }}건. 계정명과 이메일만 수정 가능하도록 현재 프로젝트 폼에 맞춰 연결했습니다.
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <div class="flex justify-end">
+                    <button class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90" type="submit">
+                        <span class="material-symbols-outlined text-base">save</span>
+                        프로필 저장
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="rounded-[28px] border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-soft">
+            <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-on-surface">History</h2>
+                    <p class="mt-1 text-sm text-on-surface-variant">렌더 결과와 다운로드 링크를 한 번에 관리</p>
+                </div>
             </div>
-            <div class="description_area">
-                <div class="text-wrapper">History</div>
-                 <form class="historyForm" method="POST" action="{% url 'delete_user_history' %}">
-                 {% csrf_token %}
-                 {% for history in user_histories %}
-                    <div class="text-wrap   per-2">
-                         <div class="ppt-title">{{ history.ppt_title }}</div>
-                            <div class="ppt-url">상태: {{ history.status }} / 엔진: {{ history.backend }}</div>
-                            {% if history.ppt_url %}
-                                <a href="{{ history.ppt_url }}" class="ppt-url">{{ history.ppt_url }}</a>
-                            {% endif %}
-                            {% if history.file_path %}
-                                <div class="ppt-url">파일: {{ history.file_path }}</div>
-                            {% endif %}
-                            {% if history.error_message %}
-                                <div class="ppt-url">오류: {{ history.error_message }}</div>
-                            {% endif %}
-                            <label class="label_check_box">
-                                <input type="checkbox" id="presentation_id" class="single-checkbox" name=presentation_id value="{{ history.id }}">
-                                <span class="custom-checkbox"></span>
-                            </label>
-                    </div><br><br>
-                 {% empty %}
-                    <div class="text-wrapper-2">No history available.</div>
-                 {% endfor %}
-            </div>
-            <div class="btn_info_set_div">
-                <button class="btn_info_set" type="submit" onclick="return confirmDelete()">삭제</button>
-            </div>
-        </form>
-        </div>
+            <form action="{% url 'delete_user_history' %}" method="post">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    {% for history in history_entries %}
+                        <article class="rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="truncate text-base font-bold text-on-surface">{{ history.record.ppt_title }}</h3>
+                                        <span class="rounded-full bg-surface-container-high px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{{ history.record.backend }}</span>
+                                        <span class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] {% if history.record.status == 'completed' %}bg-secondary/10 text-secondary{% else %}bg-error/10 text-error{% endif %}">
+                                            {{ history.record.status }}
+                                        </span>
+                                    </div>
+                                    <p class="mt-2 text-sm text-on-surface-variant">{{ history.record.create_date|date:"Y.m.d H:i" }}</p>
+                                    {% if history.record.file_path %}
+                                        <p class="mt-2 truncate text-xs text-on-surface-variant">파일: {{ history.record.file_path }}</p>
+                                    {% endif %}
+                                    {% if history.record.error_message %}
+                                        <p class="mt-2 text-xs text-error">오류: {{ history.record.error_message }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    {% if history.download_url %}
+                                        <a class="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition hover:opacity-90" href="{{ history.download_url }}">다운로드</a>
+                                    {% elif history.external_url %}
+                                        <a class="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition hover:opacity-90" href="{{ history.external_url }}">열기</a>
+                                    {% endif %}
+                                    <label class="inline-flex items-center gap-2 rounded-xl border border-outline-variant/20 px-3 py-2 text-sm font-semibold text-on-surface-variant transition hover:bg-surface-container-high">
+                                        <input class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary" name="presentation_id" type="checkbox" value="{{ history.record.id }}" />
+                                        삭제 대상
+                                    </label>
+                                </div>
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="rounded-2xl border border-dashed border-outline-variant/30 bg-surface-container-low p-8 text-center">
+                            <p class="text-lg font-bold text-on-surface">아직 생성 기록이 없습니다.</p>
+                            <p class="mt-2 text-sm text-on-surface-variant">AI Workflow 화면에서 첫 발표를 생성해 보세요.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% if history_entries %}
+                    <div class="mt-6 flex justify-end">
+                        <button class="rounded-xl border border-error/20 px-4 py-3 text-sm font-bold text-error transition hover:bg-error/5" onclick="return confirmDelete()" type="submit">선택 기록 삭제</button>
+                    </div>
+                {% endif %}
+            </form>
+        </section>
     </div>
-</body>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
     function confirmDelete() {
         return confirm("정말 삭제하시겠습니까?");
     }
 </script>
-</html>
+{% endblock %}

@@ -1,98 +1,150 @@
+{% extends "site_app_base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html>
-  <head>
-      <meta charset="utf-8" />
-      <link rel="stylesheet" href="{% static "css/Home_globals.css" %}" />
-      <link rel="stylesheet" href="{% static "css/Home_styleguide.css" %}" />
-      <link rel="stylesheet" href="{% static "css/Home_style.css" %}" />
-      <script src="{% static 'js/logout_beacon.js' %}" defer></script>
-      <title>PPT</title>
-  </head>
-  <body>
-    <div class="main-homepage">
-      <div class="main-header">
-        <div class="logo-block">
-            <img class="LOGO-PT" src="{% static 'css/img/LOGO_PT.png' %}" onclick="location.href='{% url 'home' %}'"/>
+
+{% block title %}Dashboard | SlideArchitect{% endblock %}
+
+{% block app_content %}
+<div class="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
+    <section class="relative overflow-hidden rounded-[32px] bg-primary px-6 py-8 text-white shadow-studio md:px-10 md:py-12">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary via-primary-dim to-indigo-950 opacity-95"></div>
+        <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-container/40 blur-3xl"></div>
+        <div class="absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-secondary/25 blur-3xl"></div>
+        <div class="relative z-10 max-w-3xl">
+            <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.26em]">
+                <span class="h-2 w-2 rounded-full bg-secondary"></span>
+                AI PPT Automation
+            </div>
+            <h1 class="max-w-2xl text-3xl font-extrabold tracking-tight md:text-5xl">
+                {% if user.is_authenticated %}
+                    {{ user.username }}님, 다음 발표도 바로 시작하세요
+                {% else %}
+                    아이디어 한 줄로 프레젠테이션 초안 생성
+                {% endif %}
+            </h1>
+            <p class="mt-4 max-w-2xl text-sm leading-7 text-white/80 md:text-base">
+                피그마 대시보드 시안 그대로. 주제 입력, 템플릿 선택, 결과 다운로드까지 같은 흐름으로 연결됩니다.
+            </p>
+            <form action="{% url 'prompt' %}" class="mt-8 max-w-2xl" method="get">
+                <div class="relative">
+                    <input class="h-16 w-full rounded-2xl border-none bg-surface-container-lowest pl-6 pr-28 text-lg text-on-surface shadow-2xl placeholder:text-on-surface-variant/55 focus:ring-4 focus:ring-primary-fixed/30" name="topic" placeholder="어떤 주제로 발표를 만들까요? 예: 2026 마케팅 전략" type="text" />
+                    <button class="absolute bottom-3 right-3 top-3 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90" type="submit">
+                        <span class="material-symbols-outlined text-base">auto_awesome</span>
+                        생성
+                    </button>
+                </div>
+            </form>
+            <div class="mt-5 flex flex-wrap gap-3 text-xs font-medium text-white/80">
+                <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">#분기 실적 보고</span>
+                <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">#서비스 제안서</span>
+                <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">#투자 피치덱</span>
+            </div>
         </div>
-        <div class="nav-bar">
-          <div class="community-btn"><div class="title">Community</div></div>
+    </section>
+
+    <section class="mt-10">
+        <div class="mb-6 flex items-end justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-on-surface">인기 템플릿</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">`figma 1` 워크플로우와 연결된 실사용 카드</p>
+            </div>
+            <a class="text-sm font-bold text-primary hover:underline" href="{% url 'prompt' %}">워크플로우로 이동</a>
         </div>
-          {% if user.is_authenticated %}
-              <!-- 로그인한 경우: 프로필과 로그아웃 버튼 -->
-              <div class="button-group-after-sign-up">
-                <button class="username" onclick="location.href='{% url 'profile' %}'">{{ user.username }} 님</button>
-                <button class="btn-logout" onclick="location.href='{% url 'logout' %}'">Log out</button>
-              </div>
-          {% else %}
-              <!-- 로그인하지 않은 경우: 회원가입 및 로그인 버튼 -->
-              <div class="button-group-sign">
-                  <button class="btn-sign-up" onclick="location.href='{% url 'signup' %}'">Sign up</button>
-                  <button class="btn-sign-in" onclick="location.href='{% url 'login' %}'">Sign in</button>
-              </div>
-          {% endif %}
-      </div>
-      <div class="main-section">
-        <div class="main-title-group">
-          <p class="main-title">PPT 날먹을 위한 최고의 선택</p>
-          <div class="main-subtitle">와! 과제날먹!</div>
+        <div class="grid gap-6 md:grid-cols-3">
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}">
+                <div class="aspect-[16/10] overflow-hidden bg-surface-container">
+                    <img alt="design tem1 preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/design_tem1_preview.png' %}" />
+                </div>
+                <div class="p-5">
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-primary">Template 1</p>
+                    <h3 class="mt-2 text-lg font-bold text-on-surface">design_tem1</h3>
+                    <p class="mt-2 text-sm leading-6 text-on-surface-variant">강한 대비와 에디토리얼 리듬. 메시지 중심 발표용.</p>
+                </div>
+            </a>
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}">
+                <div class="aspect-[16/10] overflow-hidden bg-surface-container">
+                    <img alt="design tem2 preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/design_tem2_preview.png' %}" />
+                </div>
+                <div class="p-5">
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-primary">Template 2</p>
+                    <h3 class="mt-2 text-lg font-bold text-on-surface">design_tem2</h3>
+                    <p class="mt-2 text-sm leading-6 text-on-surface-variant">클린 블루 톤과 라운드 패널. 리포트형 발표용.</p>
+                </div>
+            </a>
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}">
+                <div class="aspect-[16/10] overflow-hidden bg-surface-container">
+                    <img alt="default template preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/template3.jpg' %}" />
+                </div>
+                <div class="p-5">
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-primary">Template 3</p>
+                    <h3 class="mt-2 text-lg font-bold text-on-surface">기본형</h3>
+                    <p class="mt-2 text-sm leading-6 text-on-surface-variant">빠른 초안 생성용. 구조 확인 후 편집기로 넘기기 좋음.</p>
+                </div>
+            </a>
         </div>
-        <div class="button_start_group">
+    </section>
+
+    <section class="mt-10" id="recent-projects">
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-on-surface">최근 프로젝트</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">
+                    {% if user.is_authenticated %}
+                        최근 생성 기록 {{ history_count }}건
+                    {% else %}
+                        로그인 후 실제 생성 기록이 여기에 표시됩니다
+                    {% endif %}
+                </p>
+            </div>
             {% if user.is_authenticated %}
-                <button class="button-start-button" onclick="location.href='{% url 'prompt' %}'">시작하기</button>
-            {% else %}
-                <button class="button-start-button" onclick="location.href='{% url 'login' %}'">시작하기</button>
+                <a class="text-sm font-bold text-primary hover:underline" href="{% url 'profile' %}">전체 기록 보기</a>
             {% endif %}
         </div>
-      </div>
-{#      <div class="main-banner-section">#}
-{#          <img class="main-banner-section"/>#}
-{#      </div>#}
-      <div class="main-footer-section">
-          <div class="icon-title">
-            <img class="icon-footer" src="{% static 'css/img/X Logo.svg' %}" />
-            <img class="icon-footer" src="{% static 'css/img/Logo Instagram.svg' %}" />
-            <img class="icon-footer" src="{% static 'css/img/Logo YouTube.svg' %}" />
-            <img class="icon-footer" src="{% static 'css/img/LinkedIn.svg' %}" />
-          </div>
-          <div class="text-section">
-              <div class="text-strong-wrapper">
-                  <div class="text-strong"><div class="div">Use cases</div></div>
-          </div>
-              <div class="text-link-list-item"><div class="list-item">UI design</div></div>
-              <div class="text-link-list-item"><div class="list-item">UX design</div></div>
-              <div class="text-link-list-item"><div class="list-item">Wireframing</div></div>
-              <div class="text-link-list-item"><div class="list-item">Diagramming</div></div>
-              <div class="text-link-list-item"><div class="list-item">Brainstorming</div></div>
-              <div class="text-link-list-item"><div class="list-item">Online whiteboard</div></div>
-              <div class="text-link-list-item"><div class="list-item">Team collaboration</div></div>
-          </div>
-          <div class="text-section">
-              <div class="text-strong-wrapper">
-                  <div class="text-strong"><div class="div">Explore</div></div>
-              </div>
-              <div class="text-link-list-item"><div class="list-item">Design</div></div>
-              <div class="text-link-list-item"><div class="list-item">Prototyping</div></div>
-              <div class="text-link-list-item"><div class="list-item">Development features</div></div>
-              <div class="text-link-list-item"><div class="list-item">Design systems</div></div>
-              <div class="text-link-list-item"><div class="list-item">Collaboration features</div></div>
-              <div class="text-link-list-item"><div class="list-item">Design process</div></div>
-              <div class="text-link-list-item"><div class="list-item">FigJam</div></div>
-          </div>
-          <div class="text-section">
-              <div class="text-strong-wrapper">
-                <div class="text-strong"><div class="div">Resources</div></div>
-              </div>
-              <div class="text-link-list-item"><div class="list-item">Blog</div></div>
-              <div class="text-link-list-item"><div class="list-item">Best practices</div></div>
-              <div class="text-link-list-item"><div class="list-item">Colors</div></div>
-              <div class="text-link-list-item"><div class="list-item">Color wheel</div></div>
-              <div class="text-link-list-item"><div class="list-item">Support</div></div>
-              <div class="text-link-list-item"><div class="list-item">Developers</div></div>
-              <div class="text-link-list-item"><div class="list-item">Resource library</div></div>
-          </div>
-      </div>
-        <p class="main-copyright">ⓒ 2025. 02.12 Team_3 All rights reserved.</p>
-    </div>
-  </body>
-</html>
+        <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {% if recent_history_entries %}
+                {% for history in recent_history_entries %}
+                    <article class="overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio">
+                        <div class="flex aspect-[4/3] items-end justify-between bg-gradient-to-br from-primary/15 via-primary-container/25 to-secondary/20 p-5">
+                            <span class="rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                                {{ history.record.backend }}
+                            </span>
+                            <span class="text-xs font-semibold text-on-surface-variant">{{ history.record.create_date|date:"m.d H:i" }}</span>
+                        </div>
+                        <div class="p-5">
+                            <h3 class="truncate text-sm font-bold text-on-surface">{{ history.record.ppt_title }}</h3>
+                            <p class="mt-2 text-xs font-medium uppercase tracking-[0.18em] {% if history.record.status == 'completed' %}text-secondary{% else %}text-error{% endif %}">
+                                {{ history.record.status }}
+                            </p>
+                            <div class="mt-4 flex gap-2">
+                                {% if history.download_url %}
+                                    <a class="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition hover:opacity-90" href="{{ history.download_url }}">다운로드</a>
+                                {% elif history.external_url %}
+                                    <a class="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition hover:opacity-90" href="{{ history.external_url }}">열기</a>
+                                {% endif %}
+                                <a class="inline-flex items-center justify-center rounded-xl border border-outline-variant/20 px-3 py-2 text-xs font-semibold text-on-surface-variant transition hover:bg-surface-container-low" href="{% url 'result' %}">결과 보기</a>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <article class="flex aspect-[4/3] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-outline-variant/30 bg-surface-container-lowest/70 p-6 text-center shadow-soft sm:col-span-2 xl:col-span-4">
+                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined text-3xl">add</span>
+                    </div>
+                    <h3 class="mt-4 text-lg font-bold text-on-surface">첫 프로젝트를 만들어 보세요</h3>
+                    <p class="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
+                        주제 입력 후 템플릿만 고르면 바로 결과 화면으로 이동합니다.
+                    </p>
+                    <a class="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90" href="{% url 'prompt' %}">
+                        <span class="material-symbols-outlined text-base">auto_awesome</span>
+                        새 프레젠테이션 시작
+                    </a>
+                </article>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+<a class="fixed bottom-8 right-8 z-40 hidden h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container text-white shadow-2xl transition hover:scale-110 md:flex" href="{% url 'prompt' %}">
+    <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</a>
+{% endblock %}

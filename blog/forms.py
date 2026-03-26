@@ -46,11 +46,9 @@ class ProfileUpdateForm(forms.ModelForm):
         model = User
         fields = ['id','username', 'email']  # 원하는 필드만 수정 가능
         widgets = {
-
             'username': TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            # 'id': forms.HiddenInput(),  # id는 숨김 필드로 처리 (사용자가 수정하지 않도록)
-            'id': TextInput(attrs={'class': 'form-control'})  # id는 숨김 필드로 처리 (사용자가 수정하지 않도록)
+            'id': forms.HiddenInput(),
         }
 
 

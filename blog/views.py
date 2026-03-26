@@ -4,9 +4,14 @@ from pathlib import Path
 from urllib.parse import quote
 from django.shortcuts import render, redirect
 from googleapiclient.errors import HttpError
-from .forms import SignUpForm, UserUpdateForm, ProfileUpdateForm
+from .forms import (
+    CustomPasswordChangeForm,
+    ProfileUpdateForm,
+    SignUpForm,
+    UserUpdateForm,
+)
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -179,6 +184,21 @@ def build_history_entries(user_histories):
     return entries
 
 
+def recent_history_entries_for(user, *, limit=4):
+    if not getattr(user, "is_authenticated", False):
+        return []
+    user_histories = UserHistory.objects.filter(user=user).order_by("-create_date")[:limit]
+    return build_history_entries(user_histories)
+
+
+def build_home_context(request):
+    entries = recent_history_entries_for(request.user, limit=4)
+    return {
+        "recent_history_entries": entries,
+        "history_count": len(entries),
+    }
+
+
 def render_with_pptxgenjs(agent_result, template_key):
     output_title, output_dir = reserve_render_output_dir(agent_result.output_title)
     output_name = f"{output_title}.pptx"
@@ -289,22 +309,22 @@ def delete_user_history(request):
 @login_required
 def password_change(request):
     if request.method == "POST":
-        form = PasswordChangeForm(request.user, request.POST)
+        form = CustomPasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
             update_session_auth_hash(request, user)  # 비밀번호 변경 후 로그인 유지
             return redirect('home')
     else:
-        form = PasswordChangeForm(request.user)
+        form = CustomPasswordChangeForm(request.user)
     return render(request, 'blog/account_password_change.html', {'form': form})
 
 def home(request):
-    return render(request, 'landing_home.html')
+    return render(request, 'landing_home.html', build_home_context(request))
 @login_required(login_url='/login/')
 def Sign_in_home(request):
     # if request.user.is_authenticated:
     #     return redirect('sign_in')  # ✅ 로그인한 경우 홈으로 이동
-    return render(request, 'landing_home.html')
+    return render(request, 'landing_home.html', build_home_context(request))
 
 @login_required(login_url='/login/')
 def prompt(request):
@@ -398,7 +418,14 @@ def prompt(request):
 
         return redirect('result')
     else:
-        return render(request, 'blog/presentation_prompt.html')
+        return render(
+            request,
+            'blog/presentation_prompt.html',
+            {
+                "prefilled_topic": request.GET.get("topic", "").strip(),
+                "recent_history_entries": recent_history_entries_for(request.user, limit=3),
+            },
+        )
 
 # -- 프롬프트 --#######################################################################################
 

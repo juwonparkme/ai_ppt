@@ -1,0 +1,26 @@
+{% extends "site_base.html" %}
+
+{% block body %}
+<main class="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10">
+    <div class="pointer-events-none absolute inset-0">
+        <div class="absolute -left-16 top-12 h-72 w-72 rounded-full bg-primary/15 blur-3xl"></div>
+        <div class="absolute bottom-12 right-0 h-80 w-80 rounded-full bg-secondary/15 blur-3xl"></div>
+    </div>
+    <div class="relative w-full max-w-md">
+        <section class="overflow-hidden rounded-[28px] border border-white/60 bg-surface-container-lowest/95 shadow-studio backdrop-blur">
+            <div class="p-8 md:p-10">
+                <div class="mb-8 text-center">
+                    <a class="inline-flex items-center gap-3 text-3xl font-extrabold tracking-tight text-transparent bg-gradient-to-br from-primary to-primary-container bg-clip-text" href="{% url 'home' %}">
+                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                        </span>
+                        SlideArchitect
+                    </a>
+                    {% block auth_intro %}{% endblock %}
+                </div>
+                {% block auth_content %}{% endblock %}
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}

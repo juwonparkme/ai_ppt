@@ -1,84 +1,134 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
-  <head>
-      {# site_base.html #}
+<html class="light" lang="ko">
+<head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="{% static "css/Home_globals.css" %}" />
-    <link rel="stylesheet" href="{% static "css/Home_styleguide.css" %}" />
-    <link rel="stylesheet" href="{% static "css/Home_style.css" %}" />
-  </head>
-  <body>
-    <div class="main-homepage">
-      <div class="main-header">
-        <div class="logo-block"><img class="LOGO-PT" src="{% static 'css/img/LOGO_PT.png' %}" /></div>
-        <div class="nav-bar">
-          <div class="community-btn"><div class="title">Community</div></div>
-        </div>
-        <div class="button-group-sign">
-          <button class="btn-sign-up" onclick="location.href='{% url 'signup' %}'">Sign up</button>
-        </div>
-          <div class="button-group-sign-in">
-              <button class="btn-sign-in" onclick="location.href='{% url 'login' %}'">Sign in</button>
-          </div>
-      </div>
-      <div class="main-section">
-        <div class="main-title-group">
-          <p class="main-title">PPT 날먹을 위한 최고의 선택</p>
-          <div class="main-subtitle">와! 과제날먹!</div>
-        </div>
-        <div class="button-start">
-          <button class="button-start-button" onclick="location.href='{% url 'login' %}'">시작하기</button>
-        </div>
-      </div>
-      <div class="main-banner-section">
-          <img class="main-banner-section"/>
-      </div>
-      <div class="main-footer-section">
-          <div class="icon-title">
-            <img class="icon-footer" src="{% static 'css/img/X Logo.svg' %}" />
-            <img class="icon-footer" src="{% static 'css/img/Logo Instagram.svg' %}" />
-            <img class="icon-footer" src="{% static 'css/img/Logo YouTube.svg' %}" />
-            <img class="icon-footer" src="{% static 'css/img/LinkedIn.svg' %}" />
-          </div>
-          <div class="text-section">
-              <div class="text-strong-wrapper">
-                  <div class="text-strong"><div class="div">Use cases</div></div>
-          </div>
-              <div class="text-link-list-item"><div class="list-item">UI design</div></div>
-              <div class="text-link-list-item"><div class="list-item">UX design</div></div>
-              <div class="text-link-list-item"><div class="list-item">Wireframing</div></div>
-              <div class="text-link-list-item"><div class="list-item">Diagramming</div></div>
-              <div class="text-link-list-item"><div class="list-item">Brainstorming</div></div>
-              <div class="text-link-list-item"><div class="list-item">Online whiteboard</div></div>
-              <div class="text-link-list-item"><div class="list-item">Team collaboration</div></div>
-          </div>
-          <div class="text-section">
-              <div class="text-strong-wrapper">
-                  <div class="text-strong"><div class="div">Explore</div></div>
-              </div>
-              <div class="text-link-list-item"><div class="list-item">Design</div></div>
-              <div class="text-link-list-item"><div class="list-item">Prototyping</div></div>
-              <div class="text-link-list-item"><div class="list-item">Development features</div></div>
-              <div class="text-link-list-item"><div class="list-item">Design systems</div></div>
-              <div class="text-link-list-item"><div class="list-item">Collaboration features</div></div>
-              <div class="text-link-list-item"><div class="list-item">Design process</div></div>
-              <div class="text-link-list-item"><div class="list-item">FigJam</div></div>
-          </div>
-          <div class="text-section">
-              <div class="text-strong-wrapper">
-                <div class="text-strong"><div class="div">Resources</div></div>
-              </div>
-              <div class="text-link-list-item"><div class="list-item">Blog</div></div>
-              <div class="text-link-list-item"><div class="list-item">Best practices</div></div>
-              <div class="text-link-list-item"><div class="list-item">Colors</div></div>
-              <div class="text-link-list-item"><div class="list-item">Color wheel</div></div>
-              <div class="text-link-list-item"><div class="list-item">Support</div></div>
-              <div class="text-link-list-item"><div class="list-item">Developers</div></div>
-              <div class="text-link-list-item"><div class="list-item">Resource library</div></div>
-          </div>
-      </div>
-        <p class="main-copyright">ⓒ 2025. 02.12 Team_3 All rights reserved.</p>
-    </div>
-  </body>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>{% block title %}SlideArchitect{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-container": "#ff909d",
+                        "on-secondary-fixed-variant": "#00675c",
+                        "on-primary-fixed": "#000000",
+                        "error": "#b41340",
+                        "surface-container-highest": "#c9deff",
+                        "surface": "#f4f6ff",
+                        "tertiary-dim": "#95233b",
+                        "on-primary": "#f4f1ff",
+                        "secondary-dim": "#005a50",
+                        "on-error-container": "#510017",
+                        "on-tertiary-fixed": "#39000d",
+                        "tertiary": "#a53046",
+                        "on-tertiary-container": "#67001f",
+                        "on-surface-variant": "#4d5d73",
+                        "inverse-on-surface": "#8e9eb7",
+                        "outline-variant": "#9eaec7",
+                        "secondary-fixed": "#62fae3",
+                        "on-secondary-fixed": "#004840",
+                        "secondary": "#00675c",
+                        "tertiary-fixed": "#ff909d",
+                        "surface-container-low": "#eaf1ff",
+                        "on-secondary": "#c1fff2",
+                        "on-tertiary": "#ffefef",
+                        "on-primary-fixed-variant": "#0e009d",
+                        "surface-container-high": "#d2e4ff",
+                        "primary-dim": "#3939c7",
+                        "on-surface": "#203044",
+                        "primary-container": "#9396ff",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#4647d3",
+                        "inverse-surface": "#000f21",
+                        "background": "#f4f6ff",
+                        "outline": "#68788f",
+                        "surface-dim": "#bdd6fc",
+                        "surface-bright": "#f4f6ff",
+                        "primary-fixed": "#9396ff",
+                        "surface-container": "#dce9ff",
+                        "on-background": "#203044",
+                        "on-secondary-container": "#005c52",
+                        "on-error": "#ffefef",
+                        "inverse-primary": "#8083ff",
+                        "surface-tint": "#4647d3",
+                        "on-primary-container": "#0a0081",
+                        "secondary-fixed-dim": "#50ebd5",
+                        "secondary-container": "#62fae3",
+                        "surface-variant": "#c9deff",
+                        "on-tertiary-fixed-variant": "#760726",
+                        "tertiary-fixed-dim": "#ff788b",
+                        "primary-fixed-dim": "#8387ff",
+                        "error-dim": "#a70138",
+                        "error-container": "#f74b6d"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    boxShadow: {
+                        "studio": "0 24px 80px rgba(70, 71, 211, 0.14)",
+                        "soft": "0 18px 60px rgba(32, 48, 68, 0.08)"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
+                        "full": "9999px"
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+            vertical-align: middle;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-headline {
+            font-family: "Plus Jakarta Sans", sans-serif;
+        }
+
+        .studio-ambient {
+            background:
+                radial-gradient(circle at top left, rgba(147, 150, 255, 0.24), transparent 32%),
+                radial-gradient(circle at bottom right, rgba(80, 235, 213, 0.18), transparent 24%),
+                linear-gradient(180deg, #f7f9ff 0%, #edf3ff 100%);
+        }
+
+        .studio-noise::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 65%);
+            opacity: 0.35;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}studio-ambient studio-noise min-h-screen bg-surface text-on-surface antialiased{% endblock %}">
+    {% include "blog/includes/messages.html" %}
+    {% block body %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
 </html>

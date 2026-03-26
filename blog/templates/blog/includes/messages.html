@@ -1,0 +1,20 @@
+{% if messages %}
+    <div class="fixed right-4 top-4 z-[120] flex w-[min(92vw,24rem)] flex-col gap-3">
+        {% for message in messages %}
+            <div class="rounded-2xl border border-white/70 bg-surface-container-lowest/95 px-4 py-3 shadow-soft backdrop-blur">
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined mt-0.5 text-sm {% if message.tags == 'success' %}text-secondary{% elif message.tags == 'error' %}text-error{% else %}text-primary{% endif %}">
+                        {% if message.tags == "success" %}
+                            check_circle
+                        {% elif message.tags == "error" %}
+                            error
+                        {% else %}
+                            info
+                        {% endif %}
+                    </span>
+                    <p class="text-sm font-medium text-on-surface">{{ message }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
