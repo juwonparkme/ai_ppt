@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const progress = document.getElementById("generation-progress");
     const topicField = document.getElementById("user-input");
     const suggestedChips = document.querySelectorAll(".suggested-topic-chip");
+    const submitButtons = document.querySelectorAll("[data-generate-submit]");
 
     if (!form || !submitButton || !submitLabel || !progress || !topicField) {
         return;
@@ -41,7 +42,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         progress.classList.remove("hidden");
-        submitButton.disabled = true;
+        submitButtons.forEach(function (button) {
+            button.disabled = true;
+        });
         submitButton.querySelector(".material-symbols-outlined").textContent = "autorenew";
         submitLabel.textContent = "생성 중...";
     });

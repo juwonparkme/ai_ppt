@@ -37,11 +37,11 @@
             <div class="space-y-3">
                 <label class="ml-1 block text-sm font-bold text-on-surface-variant" for="user-input">어떤 주제의 PPT를 만들고 싶으신가요?</label>
                 <div class="group relative">
-                    <textarea class="h-40 w-full resize-none rounded-[24px] border-none bg-surface-container-low p-6 text-xl font-medium text-on-surface shadow-inner placeholder:text-outline/40 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest" id="user-input" name="user-input" placeholder="예: 2026년 마케팅 전략" required>{{ prefilled_topic }}</textarea>
-                    <div class="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.24em] text-primary/45">
+                    <textarea class="h-40 w-full resize-none rounded-[24px] border-none bg-surface-container-low p-6 pb-20 text-xl font-medium text-on-surface shadow-inner placeholder:text-outline/40 focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest" id="user-input" name="user-input" placeholder="예: 2026년 마케팅 전략" required>{{ prefilled_topic }}</textarea>
+                    <button class="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.24em] text-primary shadow-sm transition hover:bg-white disabled:cursor-wait disabled:opacity-70" data-generate-submit type="submit">
                         <span class="material-symbols-outlined text-sm">keyboard_command_key</span>
                         Enter to generate
-                    </div>
+                    </button>
                 </div>
             </div>
 
@@ -141,7 +141,7 @@
             </div>
             <div class="flex gap-3">
                 <a class="px-5 py-2.5 text-sm font-bold text-on-surface-variant transition hover:text-on-surface" href="{% url 'home' %}">Cancel</a>
-                <button class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-8 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:scale-[1.02] disabled:cursor-wait disabled:opacity-80" id="prompt-submit" type="submit">
+                <button class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-8 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:scale-[1.02] disabled:cursor-wait disabled:opacity-80" data-generate-submit id="prompt-submit" type="submit">
                     <span class="material-symbols-outlined text-lg">auto_awesome</span>
                     <span id="prompt-submit-label">Generate Presentation</span>
                 </button>
