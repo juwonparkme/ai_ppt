@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", function () {
         slideCountFooter: document.getElementById("editor-slide-count-footer"),
         slideCountInspector: document.getElementById("editor-slide-count-inspector"),
         backendFooter: document.getElementById("editor-backend-footer"),
-        backendInspector: document.getElementById("inspector-backend-label"),
         imagePreview: document.getElementById("editor-image-preview"),
         textPreview: document.getElementById("editor-text-preview"),
         slideKind: document.getElementById("editor-slide-kind"),
@@ -149,9 +148,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (elements.backendFooter) {
             elements.backendFooter.textContent = backendFooterLabel(state.backend);
-        }
-        if (elements.backendInspector) {
-            elements.backendInspector.textContent = backendLabel(state.backend);
         }
     }
 
