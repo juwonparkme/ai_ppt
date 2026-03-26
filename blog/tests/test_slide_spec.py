@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase, override_settings
@@ -86,3 +87,55 @@ class PptRendererServiceTests(SimpleTestCase):
 
         self.assertEqual(result["outputPath"], "/tmp/out.pptx")
         self.assertEqual(result["slideCount"], 2)
+
+
+RENDERER_DIR = Path(__file__).resolve().parents[2] / "ppt-renderer"
+
+
+@override_settings(PPT_RENDERER_DIR=str(RENDERER_DIR))
+class PptRendererSmokeTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if not (RENDERER_DIR / "node_modules").exists():
+            raise cls.skipTest("ppt-renderer dependencies are not installed")
+
+    def test_render_presentation_smoke_generates_template_a_and_b_files(self):
+        specs = [
+            {
+                "version": "1.0",
+                "title": "경제학자, 엥겔스 과제 발표",
+                "template": "modern-a",
+                "language": "ko",
+                "metadata": {"topic": "경제학자, 엥겔스 과제 발표"},
+                "slides": [
+                    {"id": "s1", "kind": "title", "title": "경제학자, 엥겔스 과제 발표", "subtitle": "엥겔스의 삶과 이론적 흔적", "bullets": [], "notes": ""},
+                    {"id": "s2", "kind": "toc", "title": "목차", "subtitle": "", "bullets": ["서론", "핵심 이론", "현대적 의미"], "notes": ""},
+                    {"id": "s3", "kind": "bullets", "title": "서론", "subtitle": "엥겔스의 삶과 문제의식", "bullets": ["산업화 시대 배경", "마르크스와의 협업", "자본주의 비판"], "notes": ""},
+                    {"id": "s4", "kind": "summary", "title": "요약", "subtitle": "", "bullets": ["산업 구조 분석", "계급 문제 제기", "현대 사회에도 유효"], "notes": ""},
+                ],
+            },
+            {
+                "version": "1.0",
+                "title": "편집하기 쉬운 프레젠테이션",
+                "template": "modern-b",
+                "language": "ko",
+                "metadata": {"topic": "편집하기 쉬운 프레젠테이션"},
+                "slides": [
+                    {"id": "s1", "kind": "title", "title": "편집하기 쉬운 프레젠테이션", "subtitle": "정리된 구조와 깔끔한 시각 언어", "bullets": [], "notes": ""},
+                    {"id": "s2", "kind": "toc", "title": "목차", "subtitle": "", "bullets": ["개요", "성과", "계획"], "notes": ""},
+                    {"id": "s3", "kind": "bullets", "title": "프로젝트 개요 및 핵심 내용", "subtitle": "", "bullets": ["서비스 변화 대응", "경쟁력 강화", "지속 성장 기반"], "notes": ""},
+                    {"id": "s4", "kind": "summary", "title": "프로젝트 성과 및 결론", "subtitle": "", "bullets": ["매출 성장", "시장 점유율 확대", "지속 가능성 확보"], "notes": ""},
+                ],
+            },
+        ]
+
+        with TemporaryDirectory() as temp_dir:
+            output_root = Path(temp_dir)
+            for index, spec in enumerate(specs, start=1):
+                output_dir = output_root / f"deck-{index}"
+                result = render_presentation(spec, output_dir, f"deck-{index}.pptx")
+                output_path = Path(result["outputPath"])
+
+                self.assertTrue(output_path.exists())
+                self.assertGreater(output_path.stat().st_size, 0)
