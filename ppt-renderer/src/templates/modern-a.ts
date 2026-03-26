@@ -6,45 +6,50 @@ type PptxInstance = any;
 type PptxSlide = any;
 
 const COLORS = {
-  bg: "F4F1EA",
+  bg: "BFD4E8",
   panel: "FFFFFF",
-  text: "1E1E1E",
-  accent: "1C5D99",
-  accentSoft: "D8E7F5",
-  muted: "667085",
+  text: "201C1F",
+  accent: "7F9AB2",
+  accentSoft: "DDE9F3",
+  muted: "6D737A",
+  line: "9EB6CB",
 };
 
 function addChrome(slide: PptxSlide, spec: PresentationSpec, index: number) {
+  slide.background = { color: COLORS.bg };
   slide.addShape("rect", {
-    x: 0,
-    y: 0,
-    w: 13.33,
-    h: 7.5,
+    x: 0.24,
+    y: 0.28,
+    w: 12.85,
+    h: 6.55,
+    radius: 0.18,
+    fill: { color: COLORS.panel },
+    line: { color: COLORS.panel, transparency: 100 },
+  });
+  slide.addShape("rect", {
+    x: 4.05,
+    y: 0.1,
+    w: 5.2,
+    h: 0.52,
+    radius: 0.14,
     fill: { color: COLORS.bg },
     line: { color: COLORS.bg },
   });
-  slide.addShape("rect", {
-    x: 0.4,
-    y: 0.35,
-    w: 12.53,
-    h: 6.8,
-    radius: 0.12,
-    fill: { color: COLORS.panel },
-    line: { color: "E7E2D9", pt: 1 },
-  });
-  slide.addText(spec.title, {
-    x: 0.7,
-    y: 0.35,
-    w: 8.8,
-    h: 0.35,
+  slide.addText("BUSINESS PRESENTATION", {
+    x: 4.2,
+    y: 0.2,
+    w: 4.9,
+    h: 0.22,
+    align: "center",
     fontFace: "Aptos",
-    fontSize: 10,
+    fontSize: 12,
+    bold: false,
     color: COLORS.muted,
     margin: 0,
   });
   slide.addText(String(index + 1).padStart(2, "0"), {
-    x: 11.8,
-    y: 6.72,
+    x: 11.55,
+    y: 6.38,
     w: 0.8,
     h: 0.2,
     align: "right",
@@ -64,17 +69,18 @@ function addBulletList(slide: PptxSlide, items: string[], y: number, h: number) 
         }))
       : [{ text: "" }],
     {
-      x: 0.95,
+      x: 1.1,
       y,
-      w: 10.8,
+      w: 10.35,
       h,
       fontFace: "Aptos",
-      fontSize: 21,
+      fontSize: 19,
       color: COLORS.text,
       breakLine: true,
-      paraSpaceAfterPt: 16,
+      paraSpaceAfterPt: 14,
       valign: "top",
       margin: 0,
+      fit: "shrink",
     },
   );
 }
@@ -86,45 +92,61 @@ function renderTitleSlide(
   index: number,
 ) {
   addChrome(slide, spec, index);
-  slide.addShape("rect", {
-    x: 0.75,
-    y: 1.0,
-    w: 2.1,
-    h: 0.22,
-    fill: { color: COLORS.accent },
-    line: { color: COLORS.accent },
-  });
   slide.addText(item.title, {
-    x: 0.9,
-    y: 1.45,
-    w: 10.7,
-    h: 1.5,
+    x: 1.65,
+    y: 2.0,
+    w: 10.0,
+    h: 1.1,
     fontFace: "Aptos Display",
     bold: true,
-    fontSize: 26,
+    fontSize: 34,
     color: COLORS.text,
     margin: 0,
+    align: "center",
     fit: "shrink",
   });
   slide.addText(item.subtitle || spec.metadata.topic || "", {
-    x: 0.95,
-    y: 3.2,
-    w: 8.8,
-    h: 1.2,
+    x: 1.95,
+    y: 3.3,
+    w: 9.4,
+    h: 1.1,
     fontFace: "Aptos",
-    fontSize: 18,
+    fontSize: 30,
+    bold: true,
+    color: COLORS.accent,
+    margin: 0,
+    align: "center",
+    fit: "shrink",
+  });
+  slide.addShape("line", {
+    x: 1.0,
+    y: 5.7,
+    w: 11.35,
+    h: 0,
+    line: { color: COLORS.line, pt: 1.1 },
+  });
+  slide.addText(spec.title, {
+    x: 1.25,
+    y: 6.0,
+    w: 7.5,
+    h: 0.28,
+    fontFace: "Aptos",
+    fontSize: 11,
     color: COLORS.muted,
     margin: 0,
     fit: "shrink",
   });
-  slide.addShape("rect", {
-    x: 9.85,
-    y: 1.25,
-    w: 2.2,
-    h: 2.2,
-    radius: 0.18,
-    fill: { color: COLORS.accentSoft },
-    line: { color: COLORS.accentSoft },
+  slide.addText(spec.metadata.topic || "", {
+    x: 8.0,
+    y: 6.0,
+    w: 3.9,
+    h: 0.28,
+    fontFace: "Aptos",
+    fontSize: 11,
+    color: COLORS.muted,
+    margin: 0,
+    align: "right",
+    fit: "shrink",
   });
 }
 
@@ -136,24 +158,25 @@ function renderListSlide(
 ) {
   addChrome(slide, spec, index);
   slide.addText(item.title, {
-    x: 0.92,
-    y: 0.95,
-    w: 8.5,
+    x: 1.0,
+    y: 1.0,
+    w: 8.9,
     h: 0.65,
     fontFace: "Aptos Display",
     bold: true,
-    fontSize: 24,
+    fontSize: 23,
     color: COLORS.text,
     margin: 0,
+    fit: "shrink",
   });
   slide.addShape("line", {
-    x: 0.92,
-    y: 1.68,
-    w: 11.0,
+    x: 1.0,
+    y: 1.72,
+    w: 11.2,
     h: 0,
-    line: { color: "D8DDE3", pt: 1.2 },
+    line: { color: COLORS.line, pt: 1.1 },
   });
-  addBulletList(slide, item.bullets, 1.98, 4.8);
+  addBulletList(slide, item.bullets, 2.05, 3.95);
 }
 
 export function renderModernA(pptx: PptxInstance, spec: PresentationSpec) {

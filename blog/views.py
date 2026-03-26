@@ -35,6 +35,12 @@ ppt_link = ' '
 SCOPES = ['https://www.googleapis.com/auth/presentations.readonly']
 presentation_id=''
 
+PPTX_TEMPLATE_BY_SOURCE_ID = {
+    "1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50": "modern-a",
+    "19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4": "modern-b",
+    "1QTy_L8GU-fDZV5jE9ZO5aEuW2l1eDcFa6NH5BOYR8Ak": "modern-a",
+}
+
 
 def get_openai_client():
     if not settings.OPENAI_API_KEY:
@@ -63,6 +69,10 @@ def is_pptxgenjs_backend():
 
 def build_presentation_agent(client=None):
     return PresentationAgent(client or get_openai_client())
+
+
+def resolve_pptx_template(presentation_id):
+    return PPTX_TEMPLATE_BY_SOURCE_ID.get(presentation_id, "modern-a")
 
 
 def reserve_render_output_dir(base_name):
@@ -292,6 +302,7 @@ def prompt(request):
     global ppt_link
     if request.method == "POST":
         presentation_id = request.POST.get("presentation_id")
+        template_key = resolve_pptx_template(presentation_id)
         print(presentation_id, "입력받은 ID값")
         source_topic = request.POST.get("user-input", "").strip()
         SLIDE_TITLE_TEXT = source_topic
@@ -300,11 +311,11 @@ def prompt(request):
         agent = build_presentation_agent()
         filename = normalize_output_title(agent.generate_filename(source_topic))
         output_title = filename
-        agent_result = agent.run(source_topic, output_title=output_title, template="modern-a")
+        agent_result = agent.run(source_topic, output_title=output_title, template=template_key)
 
         if is_pptxgenjs_backend():
             try:
-                render_result = render_with_pptxgenjs(agent_result, "modern-a")
+                render_result = render_with_pptxgenjs(agent_result, template_key)
             except Exception as exc:
                 UserHistory.objects.create(
                     user_id=user_id,

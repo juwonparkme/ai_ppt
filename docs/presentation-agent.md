@@ -43,6 +43,15 @@ read_when:
 - [blog/services/ppt_renderer.py](/Users/bagjuwon/Projects/ai_ppt/blog/services/ppt_renderer.py)
   렌더 전담
 
+## 디자인 기준
+
+- `modern-a`
+  [templates/design_tem2.pdf](/Users/bagjuwon/Projects/ai_ppt/templates/design_tem2.pdf) 참고
+- `modern-b`
+  [templates/design_tem1.pdf](/Users/bagjuwon/Projects/ai_ppt/templates/design_tem1.pdf) 참고
+
+웹에서 선택한 템플릿 ID 는 `pptxgenjs` 경로에서도 실제 템플릿 키로 매핑된다.
+
 ## 원칙
 
 - 사용자 입력 주제와 출력 파일명을 분리한다.

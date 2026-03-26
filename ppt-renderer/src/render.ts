@@ -5,6 +5,7 @@ import PptxGenJS from "pptxgenjs";
 
 import { presentationSpecSchema, type PresentationSpec } from "./spec.js";
 import { renderModernA } from "./templates/modern-a.js";
+import { renderModernB } from "./templates/modern-b.js";
 
 type PptxInstance = any;
 
@@ -30,6 +31,9 @@ function renderByTemplate(pptx: PptxInstance, spec: PresentationSpec) {
   switch (spec.template) {
     case "modern-a":
       renderModernA(pptx, spec);
+      return;
+    case "modern-b":
+      renderModernB(pptx, spec);
       return;
     default:
       throw new Error(`Unsupported template: ${spec.template}`);

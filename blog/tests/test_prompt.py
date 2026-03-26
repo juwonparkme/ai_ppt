@@ -8,7 +8,11 @@ from django.urls import reverse
 
 from blog.models import UserHistory
 from blog.slide_spec import build_slide_spec
-from blog.views import encode_local_download_token, normalize_output_title
+from blog.views import (
+    encode_local_download_token,
+    normalize_output_title,
+    resolve_pptx_template,
+)
 
 
 def fake_openai_response(content):
@@ -31,7 +35,18 @@ class PromptViewTests(TestCase):
         self.assertEqual(normalize_output_title("python_ppt_관한.pptx"), "python_ppt_관한")
         self.assertEqual(normalize_output_title("python_ppt_관한.txt"), "python_ppt_관한")
 
-    def make_agent_result(self, source_topic, output_title):
+    def test_resolve_pptx_template_maps_known_source_ids(self):
+        self.assertEqual(
+            resolve_pptx_template("1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50"),
+            "modern-a",
+        )
+        self.assertEqual(
+            resolve_pptx_template("19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4"),
+            "modern-b",
+        )
+        self.assertEqual(resolve_pptx_template("unknown-template"), "modern-a")
+
+    def make_agent_result(self, source_topic, output_title, template="modern-a"):
         overview_text = (
             "#Slide: 1\n#Header: AI 협업 도구의 장단점\n#Content: 업무 생산성과 리스크 균형\n\n"
             "#Slide: 2\n#Header: 목차\n#Content:\n1. 개요\n2. 장점"
@@ -42,7 +57,7 @@ class PromptViewTests(TestCase):
             output_title=output_title,
             overview_text=overview_text,
             detail_text=detail_text,
-            spec=build_slide_spec(source_topic, overview_text, detail_text),
+            spec=build_slide_spec(source_topic, overview_text, detail_text, template=template),
         )
 
     @override_settings(PPT_RENDER_BACKEND="legacy-google")
@@ -61,7 +76,7 @@ class PromptViewTests(TestCase):
     ):
         fake_agent = SimpleNamespace(
             generate_filename=Mock(return_value="Generated Name"),
-            run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name")),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name", template="modern-b")),
         )
         mock_build_presentation_agent.return_value = fake_agent
 
@@ -100,7 +115,7 @@ class PromptViewTests(TestCase):
     ):
         fake_agent = SimpleNamespace(
             generate_filename=Mock(return_value="Generated Name"),
-            run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name")),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name", template="modern-b")),
         )
         mock_build_presentation_agent.return_value = fake_agent
         mock_render_presentation.return_value = {
@@ -111,17 +126,18 @@ class PromptViewTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.post(
             reverse("prompt"),
-            {"presentation_id": "template-123", "user-input": "AI topic"},
+            {"presentation_id": "19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4", "user-input": "AI topic"},
             HTTP_HOST="127.0.0.1",
         )
 
         self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
         fake_agent.generate_filename.assert_called_once_with("AI topic")
-        fake_agent.run.assert_called_once_with("AI topic", output_title="Generated_Name", template="modern-a")
+        fake_agent.run.assert_called_once_with("AI topic", output_title="Generated_Name", template="modern-b")
         mock_reserve_render_output_dir.assert_called_once_with("Generated_Name")
         mock_render_presentation.assert_called_once()
         render_spec = mock_render_presentation.call_args.args[0]
         self.assertEqual(render_spec["title"], "AI topic")
+        self.assertEqual(render_spec["template"], "modern-b")
 
         history = UserHistory.objects.get(user=self.user)
         self.assertEqual(history.ppt_title, "Generated_Name")
@@ -144,14 +160,14 @@ class PromptViewTests(TestCase):
     ):
         fake_agent = SimpleNamespace(
             generate_filename=Mock(return_value="Broken Deck"),
-            run=Mock(return_value=self.make_agent_result("AI topic", "Broken_Deck")),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Broken_Deck", template="modern-b")),
         )
         mock_build_presentation_agent.return_value = fake_agent
 
         self.client.force_login(self.user)
         response = self.client.post(
             reverse("prompt"),
-            {"presentation_id": "template-123", "user-input": "AI topic"},
+            {"presentation_id": "19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4", "user-input": "AI topic"},
             HTTP_HOST="127.0.0.1",
         )
 
@@ -159,7 +175,7 @@ class PromptViewTests(TestCase):
         mock_render_with_pptxgenjs.assert_called_once()
         args, _ = mock_render_with_pptxgenjs.call_args
         self.assertEqual(args[0].output_title, "Broken_Deck")
-        self.assertEqual(args[1], "modern-a")
+        self.assertEqual(args[1], "modern-b")
 
         history = UserHistory.objects.get(user=self.user)
         self.assertEqual(history.ppt_title, "Broken_Deck")
