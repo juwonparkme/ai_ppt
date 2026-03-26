@@ -1,0 +1,25 @@
+Write detailed Korean slide content based on the following presentation overview.
+
+$overview_text
+
+Follow these rules strictly:
+- Expand each table-of-contents topic into its own slide.
+- Total length should be between 2000 and 3000 Korean characters.
+- Each content slide should have 3 or more concise bullet points.
+- The last slide must be a summary slide.
+- Do not include any explanation outside the required format.
+
+Use this format exactly:
+#Slide: 3
+#Header: [세부 주제]
+#Content:
+- [핵심 포인트 1]
+- [핵심 포인트 2]
+- [핵심 포인트 3]
+
+#Slide: LAST
+#Header: Summary
+#Content:
+- [요약 포인트 1]
+- [요약 포인트 2]
+- [요약 포인트 3]

@@ -23,8 +23,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 
 from .models import UserHistory
+from .services.presentation_agent import PresentationAgent
 from .services.ppt_renderer import render_presentation
-from .slide_spec import build_slide_spec
 
 # OpenAI 설정
 SLIDE_TITLE_TEXT = ' '
@@ -59,6 +59,10 @@ def normalize_output_title(raw_title):
 
 def is_pptxgenjs_backend():
     return settings.PPT_RENDER_BACKEND == "pptxgenjs"
+
+
+def build_presentation_agent(client=None):
+    return PresentationAgent(client or get_openai_client())
 
 
 def reserve_render_output_dir(base_name):
@@ -150,12 +154,10 @@ def build_history_entries(user_histories):
     return entries
 
 
-def render_with_pptxgenjs(request, title_text, template_key):
-    overview_text = create_ppt_text(title_text)
-    detail_text = create_ppt_detail_text(overview_text=overview_text)
-    spec = build_slide_spec(title_text, overview_text, detail_text, template=template_key)
-    output_title, output_dir = reserve_render_output_dir(title_text)
+def render_with_pptxgenjs(agent_result, template_key):
+    output_title, output_dir = reserve_render_output_dir(agent_result.output_title)
     output_name = f"{output_title}.pptx"
+    spec = agent_result.spec
     render_result = render_presentation(spec.to_dict(), output_dir, output_name)
     download_token = encode_local_download_token(Path(render_result["outputPath"]))
     download_url = reverse("download_slide", args=[download_token])
@@ -291,28 +293,18 @@ def prompt(request):
     if request.method == "POST":
         presentation_id = request.POST.get("presentation_id")
         print(presentation_id, "입력받은 ID값")
-        SLIDE_TITLE_TEXT = request.POST.get("user-input", "").strip()
+        source_topic = request.POST.get("user-input", "").strip()
+        SLIDE_TITLE_TEXT = source_topic
         print(SLIDE_TITLE_TEXT)
 
-        input_string = re.sub(r"[^\w\s.\-\(\)]", "", SLIDE_TITLE_TEXT).replace("\n", "")
-
-        filename_prompt = (f"Generate a short, descriptive filename based on the following input: \"{input_string}\". "
-                           f"Answer just with the short filename, no explanation.")
-
-        client = get_openai_client()
-        filename_response = client.chat.completions.create(
-            model=settings.OPENAI_FILENAME_MODEL,
-            messages=[{"role": "system", "content": filename_prompt}],
-            temperature=0.5,
-            max_tokens=30,
-        )
-
-        filename = normalize_output_title(filename_response.choices[0].message.content)
+        agent = build_presentation_agent()
+        filename = normalize_output_title(agent.generate_filename(source_topic))
         output_title = filename
+        agent_result = agent.run(source_topic, output_title=output_title, template="modern-a")
 
         if is_pptxgenjs_backend():
             try:
-                render_result = render_with_pptxgenjs(request, output_title, "modern-a")
+                render_result = render_with_pptxgenjs(agent_result, "modern-a")
             except Exception as exc:
                 UserHistory.objects.create(
                     user_id=user_id,
@@ -354,11 +346,11 @@ def prompt(request):
             SLIDE_TITLE_TEXT = output_title
 
             print(filename)
-            ppt_text = create_ppt_text(output_title)
+            ppt_text = agent_result.overview_text
 
             split_slides(ppt_text, index=0)
 
-            ppt_detail_text = create_ppt_detail_text()
+            ppt_detail_text = agent_result.detail_text
             split_slides(ppt_detail_text, index=2)
             ppt_link=create_slides(presentation_id, output_title)
             UserHistory.objects.create(
@@ -385,47 +377,12 @@ def prompt(request):
 # -- 프롬프트 --#######################################################################################
 
 def create_ppt_text(topic):
-    client = get_openai_client()
-    prompt = f"""
-        Write a PowerPoint presentation about "{topic}". Follow these rules strictly:
-
-        2. **Slide 1**: Title slide (only title & subtitle).
-        3. **Slide 2**: Table of Contents (list all slide topics, no images).
-        7. Result must only be in Korean and should follow the specified structure.
-
-        Use the following format strictly:
-        #Title: [PPT 제목]
-
-        #Slide: 1
-        #Header: [PPT 제목]
-        #Content: [PPT 제목에 대한 부가 설명]
-
-        #Slide: 2
-        #Header: 목차
-        #Content: 
-        1. [목차 제목 1]
-        2. [목차 제목 2]
-        3. [목차 제목 3]
-        4. [목차 제목 4]
-        5. [목차 제목 5]
-        6. [목차 제목 6]
-
-        Answer ONLY in this format, without any additional text.
-        """
-    response = client.chat.completions.create(
-        model=settings.OPENAI_PRESENTATION_MODEL,
-        messages=[{"role": "system", "content": prompt}],
-        temperature=0.8,
-        max_tokens=4096,
-    )
-
-    return response.choices[0].message.content.strip()
+    return build_presentation_agent().generate_overview(topic)
 
 def create_ppt_detail_text(overview_text=None):
     global SLIDE_TITLE_TEXT
     print(SLIDE_TITLE_TEXT)
     """GPT를 활용하여 PPT 내용을 자동 생성 (슬라이드 개수 & 구조 강제)"""
-    client = get_openai_client()
     if overview_text is not None:
         content = overview_text
     else:
@@ -437,43 +394,9 @@ def create_ppt_detail_text(overview_text=None):
             file_path = f"{SLIDE_TITLE_TEXT}/1_목차.txt"
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-
-    prompt = f"""
-    Write an a about "{content}". Follow these rules strictly:
-
-
-   The topics listed in the table of contents are the themes 
-   I want to include in my PowerPoint presentation. 
-   Please provide detailed content for each topic. 
-   The total length should be between 2000 and 3000 characters. 
-   Make sure the explanation is clear, thorough, and covers each point comprehensively. 
-   Result must only be in Korean and should follow the specified structure.
-
-    #Slide: 3
-    #Header: title
-    #Content: -subtitle  
-              -content
-              -content
-              
-    #Slide: LAST
-    #Header: Summary
-    #Content: -content
-
-    ...
-
-    Answer ONLY in this format, without any additional text
-
-
-    """
-    response = client.chat.completions.create(
-        model=settings.OPENAI_PRESENTATION_MODEL,
-        messages=[{"role": "system", "content": prompt}],
-        temperature=0.5,
-        max_tokens=4096,
-    )
-    result = response.choices[0].message.content.strip()
+    result = build_presentation_agent().generate_details(content)
     print(result)
-    return response.choices[0].message.content.strip()
+    return result
 
 
 

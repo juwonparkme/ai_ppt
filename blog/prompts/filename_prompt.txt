@@ -1,0 +1,5 @@
+Generate a short, descriptive filename for a presentation about "$topic".
+Return only the filename.
+No quotes.
+No extension.
+Prefer concise Korean or ASCII words.

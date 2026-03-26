@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from blog.models import UserHistory
+from blog.slide_spec import build_slide_spec
 from blog.views import encode_local_download_token, normalize_output_title
 
 
@@ -30,28 +31,39 @@ class PromptViewTests(TestCase):
         self.assertEqual(normalize_output_title("python_ppt_관한.pptx"), "python_ppt_관한")
         self.assertEqual(normalize_output_title("python_ppt_관한.txt"), "python_ppt_관한")
 
+    def make_agent_result(self, source_topic, output_title):
+        overview_text = (
+            "#Slide: 1\n#Header: AI 협업 도구의 장단점\n#Content: 업무 생산성과 리스크 균형\n\n"
+            "#Slide: 2\n#Header: 목차\n#Content:\n1. 개요\n2. 장점"
+        )
+        detail_text = "#Slide: 3\n#Header: 장점\n#Content:\n- 생산성 향상\n- 반복 작업 축소\n- 아이디어 확장"
+        return SimpleNamespace(
+            source_topic=source_topic,
+            output_title=output_title,
+            overview_text=overview_text,
+            detail_text=detail_text,
+            spec=build_slide_spec(source_topic, overview_text, detail_text),
+        )
+
     @override_settings(PPT_RENDER_BACKEND="legacy-google")
     @patch("blog.views.create_slides", return_value="https://slides.example/presentation")
     @patch("blog.views.split_slides")
-    @patch("blog.views.create_ppt_detail_text", return_value="#Slide: 3\n#Header: Detail\n#Content: Body")
-    @patch("blog.views.create_ppt_text", return_value="#Slide: 1\n#Header: Title\n#Content: Body")
+    @patch("blog.views.build_presentation_agent")
     @patch("blog.views.random.randint", return_value=7)
     @patch("blog.views.os.makedirs", side_effect=[FileExistsError, None])
-    @patch("blog.views.get_openai_client")
     def test_prompt_post_uses_suffix_title_after_name_collision(
         self,
-        mock_get_openai_client,
         mock_makedirs,
         mock_randint,
-        mock_create_ppt_text,
-        mock_create_ppt_detail_text,
+        mock_build_presentation_agent,
         mock_split_slides,
         mock_create_slides,
     ):
-        fake_client = SimpleNamespace(
-            chat=SimpleNamespace(completions=Mock(create=Mock(return_value=fake_openai_response("Generated Name"))))
+        fake_agent = SimpleNamespace(
+            generate_filename=Mock(return_value="Generated Name"),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name")),
         )
-        mock_get_openai_client.return_value = fake_client
+        mock_build_presentation_agent.return_value = fake_agent
 
         self.client.force_login(self.user)
         response = self.client.post(
@@ -65,8 +77,8 @@ class PromptViewTests(TestCase):
             mock_makedirs.call_args_list,
             [call("Generated_Name"), call("Generated_Name_7")],
         )
-        mock_create_ppt_text.assert_called_once_with("Generated_Name_7")
-        mock_create_ppt_detail_text.assert_called_once_with()
+        fake_agent.generate_filename.assert_called_once_with("AI topic")
+        fake_agent.run.assert_called_once_with("AI topic", output_title="Generated_Name", template="modern-a")
         self.assertEqual(mock_split_slides.call_count, 2)
         mock_create_slides.assert_called_once_with("template-123", "Generated_Name_7")
 
@@ -79,42 +91,37 @@ class PromptViewTests(TestCase):
     @override_settings(PPT_RENDER_BACKEND="pptxgenjs")
     @patch("blog.views.reserve_render_output_dir", return_value=("Generated_Name", Path("/tmp/rendered/Generated_Name")))
     @patch("blog.views.render_presentation")
-    @patch("blog.views.create_ppt_detail_text", return_value="#Slide: 3\n#Header: 장점\n#Content:\n- 생산성 향상")
-    @patch(
-        "blog.views.create_ppt_text",
-        return_value=(
-            "#Slide: 1\n#Header: AI 협업 도구의 장단점\n#Content: 업무 생산성과 리스크 균형\n\n"
-            "#Slide: 2\n#Header: 목차\n#Content:\n1. 개요\n2. 장점"
-        ),
-    )
+    @patch("blog.views.build_presentation_agent")
     def test_prompt_post_uses_pptxgenjs_renderer(
         self,
-        mock_create_ppt_text,
-        mock_create_ppt_detail_text,
+        mock_build_presentation_agent,
         mock_render_presentation,
         mock_reserve_render_output_dir,
     ):
-        fake_client = SimpleNamespace(
-            chat=SimpleNamespace(completions=Mock(create=Mock(return_value=fake_openai_response("Generated Name"))))
+        fake_agent = SimpleNamespace(
+            generate_filename=Mock(return_value="Generated Name"),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name")),
         )
+        mock_build_presentation_agent.return_value = fake_agent
         mock_render_presentation.return_value = {
             "outputPath": "/tmp/rendered/Generated_Name/Generated_Name.pptx",
             "slideCount": 3,
         }
 
-        with patch("blog.views.get_openai_client", return_value=fake_client):
-            self.client.force_login(self.user)
-            response = self.client.post(
-                reverse("prompt"),
-                {"presentation_id": "template-123", "user-input": "AI topic"},
-                HTTP_HOST="127.0.0.1",
-            )
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("prompt"),
+            {"presentation_id": "template-123", "user-input": "AI topic"},
+            HTTP_HOST="127.0.0.1",
+        )
 
         self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
-        mock_create_ppt_text.assert_called_once_with("Generated_Name")
-        mock_create_ppt_detail_text.assert_called_once()
+        fake_agent.generate_filename.assert_called_once_with("AI topic")
+        fake_agent.run.assert_called_once_with("AI topic", output_title="Generated_Name", template="modern-a")
         mock_reserve_render_output_dir.assert_called_once_with("Generated_Name")
         mock_render_presentation.assert_called_once()
+        render_spec = mock_render_presentation.call_args.args[0]
+        self.assertEqual(render_spec["title"], "AI topic")
 
         history = UserHistory.objects.get(user=self.user)
         self.assertEqual(history.ppt_title, "Generated_Name")
@@ -129,23 +136,30 @@ class PromptViewTests(TestCase):
 
     @override_settings(PPT_RENDER_BACKEND="pptxgenjs")
     @patch("blog.views.render_with_pptxgenjs", side_effect=RuntimeError("renderer failed"))
-    def test_prompt_post_records_failed_render_history(self, mock_render_with_pptxgenjs):
-        fake_client = SimpleNamespace(
-            chat=SimpleNamespace(completions=Mock(create=Mock(return_value=fake_openai_response("Broken Deck"))))
+    @patch("blog.views.build_presentation_agent")
+    def test_prompt_post_records_failed_render_history(
+        self,
+        mock_build_presentation_agent,
+        mock_render_with_pptxgenjs,
+    ):
+        fake_agent = SimpleNamespace(
+            generate_filename=Mock(return_value="Broken Deck"),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Broken_Deck")),
         )
+        mock_build_presentation_agent.return_value = fake_agent
 
-        with patch("blog.views.get_openai_client", return_value=fake_client):
-            self.client.force_login(self.user)
-            response = self.client.post(
-                reverse("prompt"),
-                {"presentation_id": "template-123", "user-input": "AI topic"},
-                HTTP_HOST="127.0.0.1",
-            )
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("prompt"),
+            {"presentation_id": "template-123", "user-input": "AI topic"},
+            HTTP_HOST="127.0.0.1",
+        )
 
         self.assertRedirects(response, reverse("profile"), fetch_redirect_response=False)
         mock_render_with_pptxgenjs.assert_called_once()
         args, _ = mock_render_with_pptxgenjs.call_args
-        self.assertEqual(args[1:], ("Broken_Deck", "modern-a"))
+        self.assertEqual(args[0].output_title, "Broken_Deck")
+        self.assertEqual(args[1], "modern-a")
 
         history = UserHistory.objects.get(user=self.user)
         self.assertEqual(history.ppt_title, "Broken_Deck")
@@ -194,30 +208,20 @@ class PromptViewTests(TestCase):
             output_path.write_bytes(b"pptx-data")
             return {"outputPath": str(output_path), "slideCount": len(spec["slides"])}
 
-        fake_client = SimpleNamespace(
-            chat=SimpleNamespace(completions=Mock(create=Mock(return_value=fake_openai_response("Disk Deck"))))
+        fake_agent = SimpleNamespace(
+            generate_filename=Mock(return_value="Disk Deck"),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Disk_Deck")),
         )
 
         with override_settings(PPT_RENDER_BACKEND="pptxgenjs", PPT_RENDER_OUTPUT_DIR=str(temp_dir)):
-            with patch("blog.views.get_openai_client", return_value=fake_client):
-                with patch(
-                    "blog.views.create_ppt_text",
-                    return_value=(
-                        "#Slide: 1\n#Header: Disk Deck\n#Content: 소개\n\n"
-                        "#Slide: 2\n#Header: 목차\n#Content:\n1. 개요\n2. 결론"
-                    ),
-                ):
-                    with patch(
-                        "blog.views.create_ppt_detail_text",
-                        return_value="#Slide: 3\n#Header: Summary\n#Content:\n- 마무리",
-                    ):
-                        with patch("blog.views.render_presentation", side_effect=fake_render):
-                            self.client.force_login(self.user)
-                            response = self.client.post(
-                                reverse("prompt"),
-                                {"presentation_id": "template-123", "user-input": "AI topic"},
-                                HTTP_HOST="127.0.0.1",
-                            )
+            with patch("blog.views.build_presentation_agent", return_value=fake_agent):
+                with patch("blog.views.render_presentation", side_effect=fake_render):
+                    self.client.force_login(self.user)
+                    response = self.client.post(
+                        reverse("prompt"),
+                        {"presentation_id": "template-123", "user-input": "AI topic"},
+                        HTTP_HOST="127.0.0.1",
+                    )
 
         self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
         history = UserHistory.objects.get(user=self.user, ppt_title="Disk_Deck")
