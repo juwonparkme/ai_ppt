@@ -211,7 +211,7 @@ def signup(request):
     else:
         form = SignUpForm()
 
-    return render(request, 'blog/signup.html', {'form': form})
+    return render(request, 'blog/auth_signup.html', {'form': form})
 
 
 def user_login(request):
@@ -235,7 +235,7 @@ def user_login(request):
     else:
         form = AuthenticationForm()
 
-    return render(request, 'blog/login.html', {'form': form})
+    return render(request, 'blog/auth_login.html', {'form': form})
 def user_logout(request):
     logout(request)
     messages.success(request, "로그아웃되었습니다.")
@@ -251,7 +251,7 @@ def user_update(request):
             return redirect('profile')  # 회원정보 수정 후 이동할 페이지
     else:
         form = UserUpdateForm(instance=request.user) #현재 로그인한 사용자의 정보 가져오기
-    return render(request, 'blog/user_update.html', {'form': form})
+    return render(request, 'blog/account_settings.html', {'form': form})
 
 @login_required
 def profile_view(request):
@@ -268,11 +268,11 @@ def profile_view(request):
             form.save()
             messages.success(request, "프로필이 성공적으로 업데이트되었습니다.")
             # return redirect('profile')  # 새로고침하면서 반영됨
-            return render(request, 'blog/profile.html', {'form': form, 'history_entries': history_entries})  # 👈 데이터 유지
+            return render(request, 'blog/account_profile.html', {'form': form, 'history_entries': history_entries})  # 👈 데이터 유지
     else:
         form = ProfileUpdateForm(instance=request.user)
 
-    return render(request, 'blog/profile.html', {'form': form, 'history_entries': history_entries})
+    return render(request, 'blog/account_profile.html', {'form': form, 'history_entries': history_entries})
 
 
 def delete_user_history(request):
@@ -296,15 +296,15 @@ def password_change(request):
             return redirect('home')
     else:
         form = PasswordChangeForm(request.user)
-    return render(request, 'blog/password_change.html', {'form': form})
+    return render(request, 'blog/account_password_change.html', {'form': form})
 
 def home(request):
-    return render(request, 'home_login.html')
+    return render(request, 'landing_home.html')
 @login_required(login_url='/login/')
 def Sign_in_home(request):
     # if request.user.is_authenticated:
     #     return redirect('sign_in')  # ✅ 로그인한 경우 홈으로 이동
-    return render(request, 'home_login.html')
+    return render(request, 'landing_home.html')
 
 @login_required(login_url='/login/')
 def prompt(request):
@@ -398,7 +398,7 @@ def prompt(request):
 
         return redirect('result')
     else:
-        return render(request, 'blog/prompt.html')
+        return render(request, 'blog/presentation_prompt.html')
 
 # -- 프롬프트 --#######################################################################################
 
@@ -741,7 +741,7 @@ def create_slides(original_file_id, SLIDE_TITLE_TEXT):
 #     #     return redirect("result")
 #
 #     # 템플릿으로 전달
-#     return render(request, "blog/result_tap.html", {"presentation_id": presentation_id})
+#     return render(request, "blog/presentation_result.html", {"presentation_id": presentation_id})
 
 @login_required
 def profile(request):
@@ -762,7 +762,7 @@ def profile(request):
         return redirect('profile')  # 업데이트 후 같은 페이지로 리다이렉트
 
     # ✅ GET 요청 시 사용자 정보를 템플릿에 전달
-    return render(request, 'blog/profile.html', {
+        return render(request, 'blog/account_profile.html', {
         'user': user,
         'username': user.username,
         'email': user.email,
@@ -808,7 +808,7 @@ def display_slides(request):
     if result:
         return render(
             request,
-            "blog/result_tap.html",
+            "blog/presentation_result.html",
             {
                 "result_title": result.get("title"),
                 "download_url": result.get("download_url"),
@@ -822,7 +822,7 @@ def display_slides(request):
     download_url = reverse("download_slide", args=[presentation_id])
     return render(
         request,
-        "blog/result_tap.html",
+        "blog/presentation_result.html",
         {
             "result_title": presentation_id,
             "download_url": download_url,
