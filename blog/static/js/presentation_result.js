@@ -47,7 +47,6 @@ document.addEventListener("DOMContentLoaded", function () {
         savePill: document.getElementById("inspector-save-pill"),
         deckHeading: document.getElementById("inspector-deck-heading"),
         deckTitleInput: document.getElementById("inspector-deck-title"),
-        slideKindInput: document.getElementById("inspector-slide-kind"),
         slideTitleInput: document.getElementById("inspector-slide-title-input"),
         slideSubtitleInput: document.getElementById("inspector-slide-subtitle-input"),
         subtitleField: document.getElementById("inspector-subtitle-field"),
@@ -340,10 +339,6 @@ document.addEventListener("DOMContentLoaded", function () {
         if (elements.deckTitleInput && elements.deckTitleInput.value !== state.deckTitle) {
             elements.deckTitleInput.value = state.deckTitle;
         }
-        if (elements.slideKindInput) {
-            elements.slideKindInput.value = isImageSlide(slide) ? "title" : slide.slide_kind;
-            elements.slideKindInput.disabled = isImageSlide(slide);
-        }
         if (elements.slideTitleInput) {
             elements.slideTitleInput.value = slide.title || "";
             elements.slideTitleInput.disabled = isImageSlide(slide);
@@ -439,22 +434,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function deleteSlide() {
         deleteSlideAt(state.selectedIndex);
-    }
-
-    function syncSlideKind(nextKind) {
-        const slide = getSelectedSlide();
-        if (!slide || isImageSlide(slide)) {
-            return;
-        }
-        slide.slide_kind = nextKind;
-        if (nextKind === "title") {
-            slide.bullets = [];
-            slide.subtitle = slide.subtitle || "핵심 메시지를 입력하세요.";
-        } else if (!slide.bullets.length) {
-            slide.bullets = ["핵심 포인트를 입력하세요."];
-        }
-        markDirty();
-        renderEditor();
     }
 
     function payloadForRequest(action) {
@@ -572,12 +551,6 @@ document.addEventListener("DOMContentLoaded", function () {
             state.deckTitle = cleanText(elements.deckTitleInput.value, "presentation");
             markDirty();
             renderEditor(false);
-        });
-    }
-
-    if (elements.slideKindInput) {
-        elements.slideKindInput.addEventListener("change", function () {
-            syncSlideKind(elements.slideKindInput.value);
         });
     }
 
