@@ -1,3 +1,4 @@
+import json
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -256,3 +257,165 @@ class PromptViewTests(TestCase):
         self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
         history = UserHistory.objects.get(user=self.user, ppt_title="Disk_Deck")
         self.assertTrue(Path(history.file_path).exists())
+
+    def test_result_editor_save_updates_session_and_history_payload(self):
+        history = UserHistory.objects.create(
+            user=self.user,
+            ppt_title="Generated Deck",
+            ppt_url="",
+            backend="pptxgenjs",
+            file_path="/tmp/generated-deck.pptx",
+            result_payload={
+                "title": "Generated Deck",
+                "download_url": "/download_slide/local-demo",
+                "preview_items": [
+                    {
+                        "kind": "slide",
+                        "slide_kind": "title",
+                        "title": "Intro",
+                        "subtitle": "Kickoff",
+                        "bullets": [],
+                        "notes": "",
+                    }
+                ],
+                "backend": "pptxgenjs",
+                "template": "modern-a",
+                "primary_action_label": "다운로드",
+            },
+            status="completed",
+        )
+        history.result_payload["history_id"] = history.id
+        history.save(update_fields=["result_payload"])
+
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["last_result"] = history.result_payload
+        session.save()
+
+        response = self.client.post(
+            reverse("result_editor"),
+            data=json.dumps(
+                {
+                    "action": "save",
+                    "history_id": history.id,
+                    "title": "Edited Deck",
+                    "template": "modern-a",
+                    "backend": "pptxgenjs",
+                    "primary_action_label": "다운로드",
+                    "preview_items": [
+                        {
+                            "kind": "slide",
+                            "slide_kind": "title",
+                            "title": "수정된 인트로",
+                            "subtitle": "새 부제",
+                            "bullets": [],
+                            "notes": "",
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+            HTTP_HOST="127.0.0.1",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "saved")
+
+        history.refresh_from_db()
+        self.assertEqual(history.ppt_title, "Edited Deck")
+        self.assertEqual(history.result_payload["preview_items"][0]["title"], "수정된 인트로")
+
+        session = self.client.session
+        self.assertEqual(session["last_result"]["title"], "Edited Deck")
+        self.assertEqual(session["last_result"]["history_id"], history.id)
+
+    @patch(
+        "blog.views.reserve_render_output_dir",
+        return_value=("Edited_Deck", Path("/tmp/rendered/Edited_Deck")),
+    )
+    @patch("blog.views.render_presentation")
+    def test_result_editor_render_updates_download_and_backend(
+        self,
+        mock_render_presentation,
+        mock_reserve_render_output_dir,
+    ):
+        history = UserHistory.objects.create(
+            user=self.user,
+            ppt_title="Generated Deck",
+            ppt_url="https://slides.example/deck",
+            backend="legacy-google",
+            result_payload={
+                "title": "Edited Deck",
+                "download_url": "https://slides.example/deck",
+                "preview_items": [
+                    {
+                        "kind": "slide",
+                        "slide_kind": "title",
+                        "title": "커버",
+                        "subtitle": "핵심 메시지",
+                        "bullets": [],
+                        "notes": "",
+                    },
+                    {
+                        "kind": "slide",
+                        "slide_kind": "bullets",
+                        "title": "본문",
+                        "subtitle": "",
+                        "bullets": ["첫 포인트", "둘째 포인트"],
+                        "notes": "",
+                    },
+                ],
+                "backend": "legacy-google",
+                "template": "modern-b",
+                "primary_action_label": "Google Slides 열기",
+            },
+            status="completed",
+        )
+        history.result_payload["history_id"] = history.id
+        history.save(update_fields=["result_payload"])
+
+        mock_render_presentation.return_value = {
+            "outputPath": "/tmp/rendered/Edited_Deck/Edited_Deck.pptx",
+            "slideCount": 2,
+        }
+
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["last_result"] = history.result_payload
+        session.save()
+
+        response = self.client.post(
+            reverse("result_editor"),
+            data=json.dumps(
+                {
+                    "action": "render",
+                    "history_id": history.id,
+                    "title": "Edited Deck",
+                    "template": "modern-b",
+                    "backend": "legacy-google",
+                    "primary_action_label": "Google Slides 열기",
+                    "preview_items": history.result_payload["preview_items"],
+                }
+            ),
+            content_type="application/json",
+            HTTP_HOST="127.0.0.1",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "rendered")
+        self.assertTrue(response.json()["download_url"].startswith("/download_slide/local-"))
+        self.assertEqual(response.json()["backend"], "pptxgenjs")
+
+        mock_reserve_render_output_dir.assert_called_once_with("Edited_Deck")
+        render_spec = mock_render_presentation.call_args.args[0]
+        self.assertEqual(render_spec["template"], "modern-b")
+        self.assertEqual(render_spec["slides"][1]["bullets"][0], "첫 포인트")
+
+        history.refresh_from_db()
+        self.assertEqual(history.backend, "pptxgenjs")
+        self.assertEqual(history.file_path, "/tmp/rendered/Edited_Deck/Edited_Deck.pptx")
+        self.assertEqual(history.ppt_url, "")
+
+        session = self.client.session
+        self.assertEqual(session["last_result"]["title"], "Edited_Deck")
+        self.assertTrue(session["last_result"]["download_url"].startswith("/download_slide/local-"))

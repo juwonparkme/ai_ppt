@@ -23,12 +23,18 @@ from google.oauth2 import service_account
 import os, re, openai, json, io
 import random
 import logging
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.middleware.csrf import get_token
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from .models import UserHistory
+from .services.editor_payload import (
+    build_presentation_spec_from_payload,
+    normalize_result_payload as normalize_editor_result_payload,
+)
 from .services.presentation_agent import PresentationAgent
 from .services.ppt_renderer import render_presentation
 
@@ -178,41 +184,7 @@ def build_result_payload(*, title, download_url, backend, spec, primary_action_l
 
 
 def normalize_result_payload(payload):
-    normalized = dict(payload or {})
-    normalized_items = []
-
-    for item in normalized.get("preview_items", []):
-        kind = item.get("kind")
-        if kind == "text":
-            normalized_items.append(
-                {
-                    "kind": "slide",
-                    "slide_kind": "slide",
-                    "title": item.get("value", ""),
-                    "subtitle": "",
-                    "bullets": [],
-                    "notes": "",
-                }
-            )
-        elif kind == "image" and "value" in item:
-            normalized_items.append(
-                {
-                    "kind": "image",
-                    "slide_kind": "image",
-                    "title": item.get("title", "Image Preview"),
-                    "subtitle": "",
-                    "bullets": [],
-                    "image_url": item.get("value", ""),
-                    "notes": "",
-                }
-            )
-        else:
-            normalized_items.append(item)
-
-    normalized["preview_items"] = normalized_items
-    normalized.setdefault("primary_action_label", "다운로드")
-    normalized.setdefault("download_url", "")
-    return normalized
+    return normalize_editor_result_payload(payload)
 
 
 def store_last_result(request, payload):
@@ -449,7 +421,7 @@ def prompt(request):
             output_title = render_result["output_title"]
             SLIDE_TITLE_TEXT = output_title
             payload = render_result["result_payload"]
-            UserHistory.objects.create(
+            history = UserHistory.objects.create(
                 user_id=user_id,
                 ppt_url="",
                 ppt_title=output_title,
@@ -458,6 +430,9 @@ def prompt(request):
                 result_payload=payload,
                 status="completed",
             )
+            payload["history_id"] = history.id
+            history.result_payload = payload
+            history.save(update_fields=["result_payload"])
             store_last_result(request, payload)
         else:
             idx = random.randint(0, 100)
@@ -485,7 +460,7 @@ def prompt(request):
                 spec=agent_result.spec,
                 primary_action_label="Google Slides 열기",
             )
-            UserHistory.objects.create(
+            history = UserHistory.objects.create(
                 user_id=user_id,
                 ppt_url=ppt_link,
                 ppt_title=output_title,
@@ -493,6 +468,9 @@ def prompt(request):
                 result_payload=payload,
                 status="completed",
             )
+            payload["history_id"] = history.id
+            history.result_payload = payload
+            history.save(update_fields=["result_payload"])
             store_last_result(request, payload)
 
         # print(presentation_id, "입력받은 ID값")
@@ -913,6 +891,7 @@ def get_slide_thumbnail(presentation_id, slide_index=0):
 
 def build_history_result_payload(history):
     payload = normalize_result_payload(history.result_payload)
+    payload["history_id"] = history.id
     payload.setdefault("title", history.ppt_title)
     payload.setdefault("backend", history.backend)
     payload.setdefault("primary_action_label", "다운로드")
@@ -955,6 +934,16 @@ def render_result_page(request, payload):
             "preview_items": payload.get("preview_items", []),
             "backend": payload.get("backend"),
             "primary_action_label": payload.get("primary_action_label", "다운로드"),
+            "editor_meta": {
+                "title": payload.get("title"),
+                "downloadUrl": payload.get("download_url"),
+                "backend": payload.get("backend"),
+                "template": payload.get("template"),
+                "primaryActionLabel": payload.get("primary_action_label", "다운로드"),
+                "historyId": payload.get("history_id"),
+                "editorUrl": reverse("result_editor"),
+                "csrfToken": get_token(request),
+            },
         },
     )
 
@@ -995,6 +984,108 @@ def display_slides(request):
 def display_history_result(request, history_id):
     history = get_object_or_404(UserHistory, id=history_id, user=request.user)
     return render_result_page(request, build_history_result_payload(history))
+
+
+@login_required
+@require_POST
+def result_editor(request):
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "잘못된 편집 요청입니다."}, status=400)
+
+    existing_payload = request.session.get("last_result", {})
+    payload = normalize_result_payload(
+        {
+            "title": data.get("title") or existing_payload.get("title"),
+            "download_url": data.get("download_url") or existing_payload.get("download_url"),
+            "preview_items": data.get("preview_items", existing_payload.get("preview_items")),
+            "backend": data.get("backend") or existing_payload.get("backend"),
+            "template": data.get("template") or existing_payload.get("template"),
+            "primary_action_label": data.get("primary_action_label")
+            or existing_payload.get("primary_action_label"),
+            "history_id": data.get("history_id") or existing_payload.get("history_id"),
+        }
+    )
+
+    history = None
+    if payload.get("history_id"):
+        history = UserHistory.objects.filter(id=payload["history_id"], user=request.user).first()
+
+    action = data.get("action", "save")
+    if action not in {"save", "render"}:
+        return JsonResponse({"error": "지원하지 않는 에디터 동작입니다."}, status=400)
+
+    store_last_result(request, payload)
+
+    if history:
+        history.result_payload = payload
+        history.ppt_title = payload["title"]
+        history.save(update_fields=["result_payload", "ppt_title"])
+
+    if action == "save":
+        return JsonResponse(
+            {
+                "status": "saved",
+                "title": payload["title"],
+                "history_id": payload.get("history_id"),
+            }
+        )
+
+    try:
+        spec = build_presentation_spec_from_payload(payload)
+        output_title, output_dir = reserve_render_output_dir(normalize_output_title(payload["title"]))
+        output_name = f"{output_title}.pptx"
+        render_result = render_presentation(spec.to_dict(), output_dir, output_name)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except Exception as exc:
+        return JsonResponse({"error": f"수정본 렌더링 실패: {exc}"}, status=500)
+
+    payload.update(
+        {
+            "title": output_title,
+            "download_url": reverse(
+                "download_slide",
+                args=[encode_local_download_token(Path(render_result["outputPath"]))],
+            ),
+            "backend": "pptxgenjs",
+            "primary_action_label": "다운로드",
+            "template": spec.template,
+        }
+    )
+    store_last_result(request, payload)
+
+    if history:
+        history.ppt_title = output_title
+        history.backend = "pptxgenjs"
+        history.ppt_url = ""
+        history.file_path = str(Path(render_result["outputPath"]))
+        history.result_payload = payload
+        history.status = "completed"
+        history.error_message = ""
+        history.save(
+            update_fields=[
+                "ppt_title",
+                "backend",
+                "ppt_url",
+                "file_path",
+                "result_payload",
+                "status",
+                "error_message",
+            ]
+        )
+
+    return JsonResponse(
+        {
+            "status": "rendered",
+            "title": payload["title"],
+            "download_url": payload["download_url"],
+            "backend": payload["backend"],
+            "primary_action_label": payload["primary_action_label"],
+            "history_id": payload.get("history_id"),
+        }
+    )
 
 # slides_list
 

@@ -16,6 +16,7 @@ urlpatterns = [
     path('prompt/', prompt, name='prompt'),
     # path("chat/", chat_view, name="chat"),
     path('result/', views.display_slides, name='result'),
+    path('result/editor/', views.result_editor, name='result_editor'),
     path('result/history/<int:history_id>/', views.display_history_result, name='history_result'),
     # path('export/', export, name='export'),
     path('profile/', profile_view, name='profile'),
