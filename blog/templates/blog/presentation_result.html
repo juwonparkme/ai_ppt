@@ -23,7 +23,7 @@
         {% if download_url %}
             <a class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-4 py-2 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90" href="{{ download_url }}" id="result-download">
                 <span class="material-symbols-outlined text-base">download</span>
-                다운로드
+                {{ primary_action_label|default:"다운로드" }}
             </a>
         {% endif %}
         {% if user.is_authenticated %}
@@ -50,14 +50,17 @@
         </div>
         <div class="space-y-3 overflow-y-auto pr-1">
             {% for preview in preview_items %}
-                <button class="result-slide-item group w-full rounded-2xl border border-transparent bg-surface-container-lowest/80 p-2 text-left transition hover:-translate-y-0.5 hover:border-outline-variant/20 {% if forloop.first %}ring-2 ring-primary{% endif %}" data-index="{{ forloop.counter }}" data-kind="{{ preview.kind }}" data-value="{{ preview.value|escape }}" type="button">
+                <button class="result-slide-item group w-full rounded-2xl border border-transparent bg-surface-container-lowest/80 p-2 text-left transition hover:-translate-y-0.5 hover:border-outline-variant/20 {% if forloop.first %}ring-2 ring-primary{% endif %}" data-index="{{ forloop.counter0 }}" type="button">
                     <div class="aspect-video overflow-hidden rounded-xl bg-surface-container">
                         {% if preview.kind == "image" %}
-                            <img alt="slide preview {{ forloop.counter }}" class="h-full w-full object-cover" src="{{ preview.value }}" />
+                            <img alt="slide preview {{ forloop.counter }}" class="h-full w-full object-cover" src="{{ preview.image_url }}" />
                         {% else %}
                             <div class="flex h-full flex-col justify-between bg-gradient-to-br from-white to-surface-container p-4">
-                                <div class="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Slide {{ forloop.counter }}</div>
-                                <div class="text-sm font-bold leading-5 text-on-surface">{{ preview.value }}</div>
+                                <div class="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">{{ preview.slide_kind|default:"slide" }}</div>
+                                <div class="text-sm font-bold leading-5 text-on-surface">{{ preview.title }}</div>
+                                {% if preview.subtitle %}
+                                    <div class="mt-2 line-clamp-2 text-xs leading-5 text-on-surface-variant">{{ preview.subtitle }}</div>
+                                {% endif %}
                             </div>
                         {% endif %}
                     </div>
@@ -81,29 +84,16 @@
         </div>
         <div class="flex flex-1 items-center justify-center overflow-auto p-6 md:p-10">
             <div class="relative aspect-video w-full max-w-5xl overflow-hidden rounded-sm bg-white shadow-2xl" id="editor-canvas">
-                {% with preview_items.0 as first_preview %}
-                    {% if first_preview and first_preview.kind == "image" %}
-                        <img alt="selected slide preview" class="h-full w-full object-contain bg-white" id="editor-image-preview" src="{{ first_preview.value }}" />
-                        <div class="hidden h-full w-full flex-col justify-center p-12" id="editor-text-preview">
-                            <p class="mb-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.24em] text-primary">
-                                <span class="h-0.5 w-8 bg-primary"></span>
-                                Generated Slide
-                            </p>
-                            <h1 class="max-w-3xl text-5xl font-extrabold leading-tight tracking-tight text-on-surface" id="editor-slide-title">{{ result_title }}</h1>
-                            <p class="mt-8 max-w-2xl text-lg leading-8 text-on-surface-variant">텍스트 기반 렌더 미리보기는 슬라이드 제목 중심으로 표시합니다.</p>
-                        </div>
-                    {% else %}
-                        <img alt="selected slide preview" class="hidden h-full w-full object-contain bg-white" id="editor-image-preview" src="" />
-                        <div class="flex h-full w-full flex-col justify-center p-12" id="editor-text-preview">
-                            <p class="mb-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.24em] text-primary">
-                                <span class="h-0.5 w-8 bg-primary"></span>
-                                Generated Slide
-                            </p>
-                            <h1 class="max-w-3xl text-5xl font-extrabold leading-tight tracking-tight text-on-surface" id="editor-slide-title">{% if first_preview %}{{ first_preview.value }}{% else %}{{ result_title|default:"Presentation Ready" }}{% endif %}</h1>
-                            <p class="mt-8 max-w-2xl text-lg leading-8 text-on-surface-variant">중앙 캔버스는 결과 제목과 선택한 슬라이드 타이틀을 보여줍니다.</p>
-                        </div>
-                    {% endif %}
-                {% endwith %}
+                <img alt="selected slide preview" class="hidden h-full w-full object-contain bg-white" id="editor-image-preview" src="" />
+                <div class="flex h-full w-full flex-col justify-center p-12" id="editor-text-preview">
+                    <p class="mb-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.24em] text-primary">
+                        <span class="h-0.5 w-8 bg-primary"></span>
+                        <span id="editor-slide-kind">Generated Slide</span>
+                    </p>
+                    <h1 class="max-w-3xl text-5xl font-extrabold leading-tight tracking-tight text-on-surface" id="editor-slide-title">{{ result_title|default:"Presentation Ready" }}</h1>
+                    <p class="mt-6 max-w-2xl text-lg leading-8 text-on-surface-variant" id="editor-slide-subtitle">선택한 슬라이드 내용이 이곳에 표시됩니다.</p>
+                    <ul class="mt-8 flex max-w-2xl flex-col gap-4" id="editor-slide-bullets"></ul>
+                </div>
                 <div class="absolute bottom-6 left-6 inline-flex items-center gap-3 rounded-full bg-white/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-primary shadow-lg">
                     <span id="editor-slide-index">Slide 1</span>
                     <span class="h-3 w-px bg-outline-variant/30"></span>
@@ -136,10 +126,15 @@
                     <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">Preview Count</p>
                     <p class="mt-2 text-sm font-bold text-on-surface">{{ preview_items|length }} slides</p>
                 </div>
+                <div class="rounded-2xl bg-surface-container-low p-4">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-on-surface-variant">Selected Slide</p>
+                    <p class="mt-2 text-sm font-bold text-on-surface" id="inspector-slide-title">{{ result_title|default:"Presentation" }}</p>
+                    <p class="mt-2 text-xs leading-6 text-on-surface-variant" id="inspector-slide-subtitle">선택한 슬라이드 상세가 여기 갱신됩니다.</p>
+                </div>
                 {% if download_url %}
                     <a class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-primary to-primary-container px-4 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90" href="{{ download_url }}">
                         <span class="material-symbols-outlined text-base">file_download</span>
-                        최종 PPTX 다운로드
+                        {{ primary_action_label|default:"다운로드" }}
                     </a>
                 {% endif %}
                 <a class="inline-flex items-center justify-center rounded-2xl border border-outline-variant/20 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-surface-container-low" href="{% url 'prompt' %}">새로 생성하기</a>
@@ -147,6 +142,7 @@
         </div>
     </aside>
 </main>
+{{ preview_items|json_script:"editor-preview-data" }}
 {% endblock %}
 
 {% block scripts %}

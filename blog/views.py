@@ -2,7 +2,7 @@ import pickle
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
 from urllib.parse import quote
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from googleapiclient.errors import HttpError
 from .forms import (
     CustomPasswordChangeForm,
@@ -46,6 +46,14 @@ PPTX_TEMPLATE_BY_SOURCE_ID = {
     "19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4": "modern-b",
     "1QTy_L8GU-fDZV5jE9ZO5aEuW2l1eDcFa6NH5BOYR8Ak": "modern-a",
 }
+
+SOURCE_TEMPLATE_ID_BY_KEY = {
+    "modern-a": "1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50",
+    "modern-b": "19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4",
+    "default": "1QTy_L8GU-fDZV5jE9ZO5aEuW2l1eDcFa6NH5BOYR8Ak",
+}
+
+DEFAULT_SOURCE_TEMPLATE_ID = SOURCE_TEMPLATE_ID_BY_KEY["modern-a"]
 
 
 def get_openai_client():
@@ -140,17 +148,83 @@ def build_attachment_disposition(filename):
     return f'attachment; filename="{fallback}"; filename*=utf-8\'\'{encoded}'
 
 
-def store_last_result(request, *, title, download_url, preview_items, backend):
-    request.session["last_result"] = {
+def normalize_preview_items(preview_items, kind):
+    return [{"kind": kind, "value": item} for item in preview_items]
+
+
+def build_editor_preview_items(spec):
+    return [
+        {
+            "kind": "slide",
+            "slide_kind": slide.kind,
+            "title": slide.title,
+            "subtitle": slide.subtitle,
+            "bullets": slide.bullets,
+            "notes": slide.notes,
+        }
+        for slide in spec.slides
+    ]
+
+
+def build_result_payload(*, title, download_url, backend, spec, primary_action_label):
+    return {
         "title": title,
         "download_url": download_url,
-        "preview_items": preview_items,
+        "preview_items": build_editor_preview_items(spec),
         "backend": backend,
+        "template": spec.template,
+        "primary_action_label": primary_action_label,
     }
 
 
-def normalize_preview_items(preview_items, kind):
-    return [{"kind": kind, "value": item} for item in preview_items]
+def normalize_result_payload(payload):
+    normalized = dict(payload or {})
+    normalized_items = []
+
+    for item in normalized.get("preview_items", []):
+        kind = item.get("kind")
+        if kind == "text":
+            normalized_items.append(
+                {
+                    "kind": "slide",
+                    "slide_kind": "slide",
+                    "title": item.get("value", ""),
+                    "subtitle": "",
+                    "bullets": [],
+                    "notes": "",
+                }
+            )
+        elif kind == "image" and "value" in item:
+            normalized_items.append(
+                {
+                    "kind": "image",
+                    "slide_kind": "image",
+                    "title": item.get("title", "Image Preview"),
+                    "subtitle": "",
+                    "bullets": [],
+                    "image_url": item.get("value", ""),
+                    "notes": "",
+                }
+            )
+        else:
+            normalized_items.append(item)
+
+    normalized["preview_items"] = normalized_items
+    normalized.setdefault("primary_action_label", "다운로드")
+    normalized.setdefault("download_url", "")
+    return normalized
+
+
+def store_last_result(request, payload):
+    request.session["last_result"] = normalize_result_payload(payload)
+
+
+def resolve_source_template_id(raw_value):
+    if not raw_value:
+        return DEFAULT_SOURCE_TEMPLATE_ID
+    if raw_value in PPTX_TEMPLATE_BY_SOURCE_ID:
+        return raw_value
+    return SOURCE_TEMPLATE_ID_BY_KEY.get(raw_value, DEFAULT_SOURCE_TEMPLATE_ID)
 
 
 def build_history_entries(user_histories):
@@ -158,6 +232,7 @@ def build_history_entries(user_histories):
     for history in user_histories:
         download_url = ""
         external_url = ""
+        result_url = ""
         if history.backend == "pptxgenjs":
             if history.file_path:
                 try:
@@ -174,11 +249,15 @@ def build_history_entries(user_histories):
         elif history.ppt_url:
             external_url = history.ppt_url
 
+        if history.status == "completed":
+            result_url = reverse("history_result", args=[history.id])
+
         entries.append(
             {
                 "record": history,
                 "download_url": download_url,
                 "external_url": external_url,
+                "result_url": result_url,
             }
         )
     return entries
@@ -206,12 +285,16 @@ def render_with_pptxgenjs(agent_result, template_key):
     render_result = render_presentation(spec.to_dict(), output_dir, output_name)
     download_token = encode_local_download_token(Path(render_result["outputPath"]))
     download_url = reverse("download_slide", args=[download_token])
-    preview_items = [slide.title for slide in spec.slides]
     return {
         "output_title": output_title,
-        "download_url": download_url,
         "file_path": str(Path(render_result["outputPath"])),
-        "preview_items": preview_items,
+        "result_payload": build_result_payload(
+            title=output_title,
+            download_url=download_url,
+            backend="pptxgenjs",
+            spec=spec,
+            primary_action_label="다운로드",
+        ),
     }
 
 def signup(request):
@@ -336,7 +419,7 @@ def prompt(request):
     global filename
     global ppt_link
     if request.method == "POST":
-        presentation_id = request.POST.get("presentation_id")
+        presentation_id = resolve_source_template_id(request.POST.get("presentation_id"))
         template_key = resolve_pptx_template(presentation_id)
         print(presentation_id, "입력받은 ID값")
         source_topic = request.POST.get("user-input", "").strip()
@@ -365,21 +448,17 @@ def prompt(request):
 
             output_title = render_result["output_title"]
             SLIDE_TITLE_TEXT = output_title
+            payload = render_result["result_payload"]
             UserHistory.objects.create(
                 user_id=user_id,
                 ppt_url="",
                 ppt_title=output_title,
                 backend="pptxgenjs",
                 file_path=render_result["file_path"],
+                result_payload=payload,
                 status="completed",
             )
-            store_last_result(
-                request,
-                title=output_title,
-                download_url=render_result["download_url"],
-                preview_items=normalize_preview_items(render_result["preview_items"], "text"),
-                backend="pptxgenjs",
-            )
+            store_last_result(request, payload)
         else:
             idx = random.randint(0, 100)
 
@@ -399,20 +478,22 @@ def prompt(request):
             ppt_detail_text = agent_result.detail_text
             split_slides(ppt_detail_text, index=2)
             ppt_link=create_slides(presentation_id, output_title)
+            payload = build_result_payload(
+                title=output_title,
+                download_url=ppt_link,
+                backend="legacy-google",
+                spec=agent_result.spec,
+                primary_action_label="Google Slides 열기",
+            )
             UserHistory.objects.create(
                 user_id=user_id,
                 ppt_url=ppt_link,
                 ppt_title=output_title,
                 backend="legacy-google",
+                result_payload=payload,
                 status="completed",
             )
-            store_last_result(
-                request,
-                title=output_title,
-                download_url=reverse("download_slide", args=[presentation_id]),
-                preview_items=[],
-                backend="legacy-google",
-            )
+            store_last_result(request, payload)
 
         # print(presentation_id, "입력받은 ID값")
 
@@ -424,6 +505,7 @@ def prompt(request):
             {
                 "prefilled_topic": request.GET.get("topic", "").strip(),
                 "recent_history_entries": recent_history_entries_for(request.user, limit=3),
+                "selected_template_source_id": resolve_source_template_id(request.GET.get("template")),
             },
         )
 
@@ -829,34 +911,90 @@ def get_slide_thumbnail(presentation_id, slide_index=0):
 # def router(request):
 #     return redirect('download_slide')
 
-# 뷰에서 슬라이드 썸네일을 HTML로 렌더링
-def display_slides(request):
-    result = request.session.get("last_result")
-    if result:
-        return render(
-            request,
-            "blog/presentation_result.html",
+def build_history_result_payload(history):
+    payload = normalize_result_payload(history.result_payload)
+    payload.setdefault("title", history.ppt_title)
+    payload.setdefault("backend", history.backend)
+    payload.setdefault("primary_action_label", "다운로드")
+    payload.setdefault(
+        "preview_items",
+        [
             {
-                "result_title": result.get("title"),
-                "download_url": result.get("download_url"),
-                "preview_items": result.get("preview_items", []),
-                "backend": result.get("backend"),
-            },
-        )
+                "kind": "slide",
+                "slide_kind": "title",
+                "title": history.ppt_title,
+                "subtitle": "저장된 상세 미리보기가 없어 기본 카드만 표시합니다.",
+                "bullets": [],
+                "notes": "",
+            }
+        ],
+    )
 
-    global presentation_id
-    slides = get_slides_list()
-    download_url = reverse("download_slide", args=[presentation_id])
+    if history.backend == "pptxgenjs" and history.file_path:
+        payload["download_url"] = reverse(
+            "download_slide",
+            args=[encode_local_download_token(history.file_path)],
+        )
+        payload.setdefault("primary_action_label", "다운로드")
+    elif history.ppt_url:
+        payload["download_url"] = history.ppt_url
+        payload.setdefault("primary_action_label", "Google Slides 열기")
+    else:
+        payload.setdefault("download_url", "")
+    return payload
+
+
+def render_result_page(request, payload):
+    payload = normalize_result_payload(payload)
     return render(
         request,
         "blog/presentation_result.html",
         {
-            "result_title": presentation_id,
-            "download_url": download_url,
-            "preview_items": normalize_preview_items(slides, "image"),
-            "backend": "legacy-google",
+            "result_title": payload.get("title"),
+            "download_url": payload.get("download_url"),
+            "preview_items": payload.get("preview_items", []),
+            "backend": payload.get("backend"),
+            "primary_action_label": payload.get("primary_action_label", "다운로드"),
         },
     )
+
+
+# 뷰에서 슬라이드 썸네일을 HTML로 렌더링
+def display_slides(request):
+    result = request.session.get("last_result")
+    if result:
+        return render_result_page(request, result)
+
+    global presentation_id
+    slides = get_slides_list()
+    download_url = reverse("download_slide", args=[presentation_id])
+    return render_result_page(
+        request,
+        {
+            "title": presentation_id,
+            "download_url": download_url,
+            "preview_items": [
+                {
+                    "kind": "image",
+                    "slide_kind": "image",
+                    "title": f"Slide {index}",
+                    "subtitle": "",
+                    "bullets": [],
+                    "image_url": slide,
+                    "notes": "",
+                }
+                for index, slide in enumerate(slides, start=1)
+            ],
+            "backend": "legacy-google",
+            "primary_action_label": "다운로드",
+        },
+    )
+
+
+@login_required
+def display_history_result(request, history_id):
+    history = get_object_or_404(UserHistory, id=history_id, user=request.user)
+    return render_result_page(request, build_history_result_payload(history))
 
 # slides_list
 

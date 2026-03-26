@@ -34,9 +34,9 @@
                 </div>
             </form>
             <div class="mt-5 flex flex-wrap gap-3 text-xs font-medium text-white/80">
-                <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">#분기 실적 보고</span>
-                <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">#서비스 제안서</span>
-                <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">#투자 피치덱</span>
+                <a class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 transition hover:bg-white/20" href="{% url 'prompt' %}?topic=분기 실적 보고">#분기 실적 보고</a>
+                <a class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 transition hover:bg-white/20" href="{% url 'prompt' %}?topic=서비스 제안서">#서비스 제안서</a>
+                <a class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 transition hover:bg-white/20" href="{% url 'prompt' %}?topic=투자 피치덱">#투자 피치덱</a>
             </div>
         </div>
     </section>
@@ -50,7 +50,7 @@
             <a class="text-sm font-bold text-primary hover:underline" href="{% url 'prompt' %}">워크플로우로 이동</a>
         </div>
         <div class="grid gap-6 md:grid-cols-3">
-            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}">
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}?template=modern-a">
                 <div class="aspect-[16/10] overflow-hidden bg-surface-container">
                     <img alt="design tem1 preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/design_tem1_preview.png' %}" />
                 </div>
@@ -60,7 +60,7 @@
                     <p class="mt-2 text-sm leading-6 text-on-surface-variant">강한 대비와 에디토리얼 리듬. 메시지 중심 발표용.</p>
                 </div>
             </a>
-            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}">
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}?template=modern-b">
                 <div class="aspect-[16/10] overflow-hidden bg-surface-container">
                     <img alt="design tem2 preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/design_tem2_preview.png' %}" />
                 </div>
@@ -70,7 +70,7 @@
                     <p class="mt-2 text-sm leading-6 text-on-surface-variant">클린 블루 톤과 라운드 패널. 리포트형 발표용.</p>
                 </div>
             </a>
-            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}">
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}?template=default">
                 <div class="aspect-[16/10] overflow-hidden bg-surface-container">
                     <img alt="default template preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/template3.jpg' %}" />
                 </div>
@@ -120,7 +120,9 @@
                                 {% elif history.external_url %}
                                     <a class="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition hover:opacity-90" href="{{ history.external_url }}">열기</a>
                                 {% endif %}
-                                <a class="inline-flex items-center justify-center rounded-xl border border-outline-variant/20 px-3 py-2 text-xs font-semibold text-on-surface-variant transition hover:bg-surface-container-low" href="{% url 'result' %}">결과 보기</a>
+                                {% if history.result_url %}
+                                    <a class="inline-flex items-center justify-center rounded-xl border border-outline-variant/20 px-3 py-2 text-xs font-semibold text-on-surface-variant transition hover:bg-surface-container-low" href="{{ history.result_url }}">결과 보기</a>
+                                {% endif %}
                             </div>
                         </div>
                     </article>

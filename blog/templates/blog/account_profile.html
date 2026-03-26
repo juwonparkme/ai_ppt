@@ -85,6 +85,9 @@
                                     {% endif %}
                                 </div>
                                 <div class="flex flex-wrap items-center gap-3">
+                                    {% if history.result_url %}
+                                        <a class="rounded-xl border border-outline-variant/20 px-4 py-2 text-sm font-semibold text-on-surface-variant transition hover:bg-surface-container-high" href="{{ history.result_url }}">결과 보기</a>
+                                    {% endif %}
                                     {% if history.download_url %}
                                         <a class="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition hover:opacity-90" href="{{ history.download_url }}">다운로드</a>
                                     {% elif history.external_url %}

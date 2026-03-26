@@ -31,14 +31,23 @@
 
 - 홈 대시보드
   - 로그인 상태면 최근 생성 기록 표시
+  - 템플릿 카드가 `?template=` 프리셋으로 `prompt` 이동
 - 프롬프트 화면
   - `GET /prompt/?topic=...` 지원
+  - `GET /prompt/?template=modern-a|modern-b|default` 지원
   - 템플릿 1개 선택 후 POST
 - 결과 화면
   - 세션 `last_result` 기준으로 편집기 셸 렌더
+  - `result/history/<id>/` 로 저장된 결과 payload 재열기 지원
 - 비밀번호 변경
   - 이전 잘못된 이메일 폼 제거
   - 실제 `old_password/new_password1/new_password2` 필드 사용
+
+## Persistence
+
+- `blog.models.UserHistory.result_payload`
+  - editor용 preview payload 저장
+  - 세션 없이도 history 카드에서 결과 화면 복원
 
 ## Client Scripts
 

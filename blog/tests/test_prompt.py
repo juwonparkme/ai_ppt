@@ -103,7 +103,10 @@ class PromptViewTests(TestCase):
         fake_agent.generate_filename.assert_called_once_with("AI topic")
         fake_agent.run.assert_called_once_with("AI topic", output_title="Generated_Name", template="modern-a")
         self.assertEqual(mock_split_slides.call_count, 2)
-        mock_create_slides.assert_called_once_with("template-123", "Generated_Name_7")
+        mock_create_slides.assert_called_once_with(
+            "1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50",
+            "Generated_Name_7",
+        )
 
         history = UserHistory.objects.get(user=self.user)
         self.assertEqual(history.ppt_title, "Generated_Name_7")
@@ -153,10 +156,12 @@ class PromptViewTests(TestCase):
         self.assertEqual(history.backend, "pptxgenjs")
         self.assertEqual(history.status, "completed")
         self.assertEqual(history.file_path, "/tmp/rendered/Generated_Name/Generated_Name.pptx")
+        self.assertEqual(history.result_payload["preview_items"][0]["title"], "AI 협업 도구의 장단점")
 
         session = self.client.session
         self.assertEqual(session["last_result"]["backend"], "pptxgenjs")
         self.assertTrue(session["last_result"]["download_url"].startswith("/download_slide/local-"))
+        self.assertEqual(session["last_result"]["preview_items"][2]["bullets"][0], "생산성 향상")
 
     @override_settings(PPT_RENDER_BACKEND="pptxgenjs")
     @patch("blog.views.render_with_pptxgenjs", side_effect=RuntimeError("renderer failed"))

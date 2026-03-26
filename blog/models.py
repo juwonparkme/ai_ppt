@@ -45,6 +45,7 @@ class UserHistory(models.Model):
     ppt_url = models.CharField(max_length=500)
     backend = models.CharField(max_length=32, choices=BACKEND_CHOICES, default="legacy-google")
     file_path = models.CharField(max_length=500, blank=True, default="")
+    result_payload = models.JSONField(blank=True, default=dict)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="completed")
     error_message = models.TextField(blank=True, default="")
     create_date = models.DateTimeField(auto_now_add=True)

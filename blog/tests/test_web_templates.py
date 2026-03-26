@@ -54,8 +54,18 @@ class WebTemplateSmokeTests(TestCase):
         session["last_result"] = {
             "title": "Generated Deck",
             "download_url": "/download_slide/local-demo",
-            "preview_items": [{"kind": "text", "value": "Intro"}],
+            "preview_items": [
+                {
+                    "kind": "slide",
+                    "slide_kind": "title",
+                    "title": "Intro",
+                    "subtitle": "Kickoff",
+                    "bullets": ["one", "two"],
+                    "notes": "",
+                }
+            ],
             "backend": "pptxgenjs",
+            "primary_action_label": "다운로드",
         }
         session.save()
 
@@ -64,3 +74,31 @@ class WebTemplateSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Generated Deck")
         self.assertContains(response, "Magic Inspector")
+        self.assertContains(response, "Intro")
+
+    def test_history_result_renders_saved_payload(self):
+        history = UserHistory.objects.get(user=self.user, ppt_title="Q1 Strategy Deck")
+        history.result_payload = {
+            "title": "Q1 Strategy Deck",
+            "download_url": "/download_slide/local-q1",
+            "preview_items": [
+                {
+                    "kind": "slide",
+                    "slide_kind": "bullets",
+                    "title": "성과 요약",
+                    "subtitle": "분기 성과 핵심",
+                    "bullets": ["매출 증가", "유입 확대"],
+                    "notes": "",
+                }
+            ],
+            "backend": "pptxgenjs",
+            "primary_action_label": "다운로드",
+        }
+        history.save(update_fields=["result_payload"])
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("history_result", args=[history.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "성과 요약")
+        self.assertContains(response, "분기 성과 핵심")
