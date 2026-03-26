@@ -149,10 +149,13 @@ function renderTitleSlide(slide: PptxSlide, spec: PresentationSpec, item: SlideS
   });
 }
 
-function renderTocSlide(slide: PptxSlide, spec: PresentationSpec) {
+function renderTocSlide(slide: PptxSlide, spec: PresentationSpec, item: SlideSpec) {
   setPaperBackground(slide);
   const detailSlides = spec.slides.filter((item) => item.kind !== "title" && item.kind !== "toc");
-  const items = ensureItems(detailSlides.map((item) => upperIfAscii(item.title)), 6, "SECTION");
+  const sourceItems = item.bullets.length
+    ? item.bullets.map(upperIfAscii)
+    : detailSlides.map((detailItem) => upperIfAscii(detailItem.title));
+  const items = ensureItems(sourceItems, 6, "SECTION");
   const captions = ensureItems(detailSlides.map((item) => asParagraph(item)).filter(Boolean), 6, "핵심 메시지");
 
   items.forEach((text, index) => {
@@ -580,7 +583,7 @@ export function renderModernA(pptx: PptxInstance, spec: PresentationSpec) {
       return;
     }
     if (item.kind === "toc") {
-      renderTocSlide(slide, spec);
+      renderTocSlide(slide, spec, item);
       return;
     }
     renderDetailSlide(slide, item, detailIndex, sectionNumber);

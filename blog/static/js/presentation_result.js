@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     const helpers = window.PresentationResultEditorHelpers || {};
+    const templatePreview = window.PresentationResultTemplatePreview || {};
     const previewSource = document.getElementById("editor-preview-data");
     const metaSource = document.getElementById("editor-meta-data");
     const initialPreviewItems = previewSource ? JSON.parse(previewSource.textContent) : [];
@@ -24,12 +25,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const supportsBullets = helpers.supportsBullets || function (slide) {
         return !isImageSlide(slide) && slide.slide_kind !== "title";
     };
-    const backendLabel = helpers.backendLabel || function (backend) {
+    const backendFooterLabel = helpers.backendFooterLabel || function (backend) {
         return backend;
     };
-    const backendFooterLabel = helpers.backendFooterLabel || backendLabel;
     const buildSlideCard = helpers.buildSlideCard;
-    const renderCanvasBullets = helpers.renderCanvasBullets || function () {};
 
     const elements = {
         slideList: document.getElementById("editor-slide-list"),
@@ -39,10 +38,6 @@ document.addEventListener("DOMContentLoaded", function () {
         backendFooter: document.getElementById("editor-backend-footer"),
         imagePreview: document.getElementById("editor-image-preview"),
         textPreview: document.getElementById("editor-text-preview"),
-        slideKind: document.getElementById("editor-slide-kind"),
-        slideTitle: document.getElementById("editor-slide-title"),
-        slideSubtitle: document.getElementById("editor-slide-subtitle"),
-        slideBullets: document.getElementById("editor-slide-bullets"),
         saveIndicator: document.getElementById("editor-save-indicator"),
         savePill: document.getElementById("inspector-save-pill"),
         deckHeading: document.getElementById("inspector-deck-heading"),
@@ -72,6 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
         historyId: editorMeta.historyId || null,
         editorUrl: cleanText(editorMeta.editorUrl, ""),
         csrfToken: cleanText(editorMeta.csrfToken, ""),
+        assetUrls: editorMeta.assetUrls || {},
         previewItems: Array.isArray(initialPreviewItems) ? initialPreviewItems.map(normalizePreviewItem) : [],
         selectedIndex: 0,
         version: 0,
@@ -204,10 +200,31 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function readEditableValue(element, compact) {
+        const raw = String(element.textContent || "").replace(/\u00a0/g, " ");
+        return compact ? raw.replace(/\s+/g, " ").trim() : raw.trim();
+    }
+
+    function focusCanvasField(field) {
+        if (!elements.textPreview) {
+            return false;
+        }
+        const target = elements.textPreview.querySelector('[data-editor-field="' + field + '"]');
+        if (!target) {
+            return false;
+        }
+        target.focus();
+        setCanvasSelection(target);
+        selectEditableText(target);
+        return true;
+    }
+
     function renderCanvas(slide) {
         if (!slide) {
             return;
         }
+
+        clearCanvasSelection();
 
         if (isImageSlide(slide)) {
             if (elements.imagePreview) {
@@ -216,6 +233,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             if (elements.textPreview) {
                 elements.textPreview.classList.add("hidden");
+                elements.textPreview.innerHTML = "";
             }
             return;
         }
@@ -225,25 +243,86 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (elements.textPreview) {
             elements.textPreview.classList.remove("hidden");
+            elements.textPreview.innerHTML =
+                typeof templatePreview.renderCanvasPreview === "function"
+                    ? templatePreview.renderCanvasPreview({
+                          slide: slide,
+                          previewItems: state.previewItems,
+                          selectedIndex: state.selectedIndex,
+                          template: state.template,
+                          assetUrls: state.assetUrls,
+                          deckTitle: state.deckTitle,
+                      })
+                    : "";
         }
-        if (elements.slideKind) {
-            elements.slideKind.textContent = slide.slide_kind;
-        }
-        if (elements.slideTitle) {
-            elements.slideTitle.textContent = slide.title || "Untitled Slide";
-        }
-        if (elements.slideSubtitle) {
-            elements.slideSubtitle.textContent = slide.subtitle || (supportsBullets(slide) ? "캔버스나 우측 패널에서 내용을 수정하세요." : "부제목을 입력하세요.");
-        }
-        renderCanvasBullets(elements.slideBullets, slide);
-        bindCanvasBulletEditors();
+        bindCanvasEditors();
     }
 
-    function bindCanvasBulletEditors() {
-        const bulletEditors = Array.from(document.querySelectorAll(".editor-bullet-text"));
-        const bulletRemoveButtons = Array.from(document.querySelectorAll(".editor-bullet-remove"));
+    function updateSlideFromCanvas(editor, finalize) {
+        const slide = getSelectedSlide();
+        if (!slide) {
+            return;
+        }
 
-        bulletEditors.forEach(function (editor) {
+        const field = editor.dataset.editorField;
+        let changed = false;
+
+        if (field === "title") {
+            const nextTitle = cleanText(readEditableValue(editor, true), "Untitled Slide");
+            if (slide.title !== nextTitle) {
+                slide.title = nextTitle;
+                changed = true;
+            }
+            if (elements.slideTitleInput && elements.slideTitleInput.value !== slide.title) {
+                elements.slideTitleInput.value = slide.title;
+            }
+        } else if (field === "subtitle") {
+            const nextSubtitle = readEditableValue(editor, false);
+            if (slide.subtitle !== nextSubtitle) {
+                slide.subtitle = nextSubtitle;
+                changed = true;
+            }
+            if (elements.slideSubtitleInput && elements.slideSubtitleInput.value !== slide.subtitle) {
+                elements.slideSubtitleInput.value = slide.subtitle;
+            }
+        } else if (field === "bullet") {
+            const bulletIndex = Number(editor.dataset.bulletIndex || "-1");
+            if (!Array.isArray(slide.bullets) || bulletIndex < 0 || bulletIndex >= slide.bullets.length) {
+                return;
+            }
+            const nextBullet = readEditableValue(editor, false);
+            if (finalize && !nextBullet) {
+                slide.bullets.splice(bulletIndex, 1);
+                changed = true;
+            } else if (slide.bullets[bulletIndex] !== nextBullet) {
+                slide.bullets[bulletIndex] = nextBullet;
+                changed = true;
+            }
+        }
+
+        if (!changed) {
+            return;
+        }
+
+        markDirty();
+        if (finalize) {
+            renderEditor();
+            return;
+        }
+
+        renderSlideList();
+        renderInspector(slide);
+    }
+
+    function bindCanvasEditors() {
+        if (!elements.textPreview) {
+            return;
+        }
+
+        const editors = Array.from(elements.textPreview.querySelectorAll("[data-editor-field]"));
+        const removeButtons = Array.from(elements.textPreview.querySelectorAll("[data-bullet-remove-index]"));
+
+        editors.forEach(function (editor) {
             editor.addEventListener("focus", function () {
                 setCanvasSelection(editor);
             });
@@ -253,42 +332,19 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             editor.addEventListener("input", function () {
-                const bulletIndex = Number(editor.dataset.bulletIndex || "-1");
-                const slide = getSelectedSlide();
-                if (bulletIndex < 0 || !slide || !slide.bullets) {
-                    return;
-                }
-                slide.bullets[bulletIndex] = editor.textContent || "";
-                markDirty();
-                renderSlideList();
+                updateSlideFromCanvas(editor, false);
             });
 
             editor.addEventListener("blur", function () {
-                const bulletIndex = Number(editor.dataset.bulletIndex || "-1");
-                const slide = getSelectedSlide();
-                if (bulletIndex < 0 || !slide || !slide.bullets) {
-                    return;
-                }
-                const nextValue = (editor.textContent || "").trim();
-                if (nextValue) {
-                    slide.bullets[bulletIndex] = nextValue;
-                    return;
-                }
-                if (slide.bullets.length === 1) {
-                    slide.bullets = [];
-                } else {
-                    slide.bullets.splice(bulletIndex, 1);
-                }
-                markDirty();
-                renderEditor();
+                updateSlideFromCanvas(editor, true);
             });
         });
 
-        bulletRemoveButtons.forEach(function (button) {
+        removeButtons.forEach(function (button) {
             button.addEventListener("click", function () {
-                const bulletIndex = Number(button.dataset.bulletRemoveIndex || "-1");
                 const slide = getSelectedSlide();
-                if (bulletIndex < 0 || !slide || !slide.bullets) {
+                const bulletIndex = Number(button.dataset.bulletRemoveIndex || "-1");
+                if (!slide || bulletIndex < 0 || bulletIndex >= slide.bullets.length) {
                     return;
                 }
                 slide.bullets.splice(bulletIndex, 1);
@@ -570,56 +626,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    if (elements.slideTitle) {
-        elements.slideTitle.addEventListener("focus", function () {
-            setCanvasSelection(elements.slideTitle);
-        });
-
-        elements.slideTitle.addEventListener("click", function () {
-            setCanvasSelection(elements.slideTitle);
-        });
-
-        elements.slideTitle.addEventListener("input", function () {
-            getSelectedSlide().title = cleanText(elements.slideTitle.textContent, "Untitled Slide");
-            if (elements.slideTitleInput) {
-                elements.slideTitleInput.value = getSelectedSlide().title;
-            }
-            markDirty();
-            renderSlideList();
-        });
-
-        elements.slideTitle.addEventListener("blur", function () {
-            getSelectedSlide().title = cleanText(elements.slideTitle.textContent, "Untitled Slide");
-            renderCanvas(getSelectedSlide());
-            renderSlideList();
-        });
-    }
-
-    if (elements.slideSubtitle) {
-        elements.slideSubtitle.addEventListener("focus", function () {
-            setCanvasSelection(elements.slideSubtitle);
-        });
-
-        elements.slideSubtitle.addEventListener("click", function () {
-            setCanvasSelection(elements.slideSubtitle);
-        });
-
-        elements.slideSubtitle.addEventListener("input", function () {
-            getSelectedSlide().subtitle = (elements.slideSubtitle.textContent || "").trim();
-            if (elements.slideSubtitleInput) {
-                elements.slideSubtitleInput.value = getSelectedSlide().subtitle;
-            }
-            markDirty();
-            renderSlideList();
-        });
-
-        elements.slideSubtitle.addEventListener("blur", function () {
-            getSelectedSlide().subtitle = (elements.slideSubtitle.textContent || "").trim();
-            renderCanvas(getSelectedSlide());
-            renderSlideList();
-        });
-    }
-
     if (elements.addBullet) {
         elements.addBullet.addEventListener("click", addBullet);
     }
@@ -633,14 +639,16 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.toolbarButtons.forEach(function (button) {
         button.addEventListener("click", function () {
             const action = button.dataset.editorAction;
-            if (action === "focus-title" && elements.slideTitle) {
-                elements.slideTitle.focus();
-                setCanvasSelection(elements.slideTitle);
-                selectEditableText(elements.slideTitle);
-            } else if (action === "focus-subtitle" && elements.slideSubtitle) {
-                elements.slideSubtitle.focus();
-                setCanvasSelection(elements.slideSubtitle);
-                selectEditableText(elements.slideSubtitle);
+            if (action === "focus-title") {
+                if (!focusCanvasField("title") && elements.slideTitleInput) {
+                    elements.slideTitleInput.focus();
+                    elements.slideTitleInput.select();
+                }
+            } else if (action === "focus-subtitle") {
+                if (!focusCanvasField("subtitle") && elements.slideSubtitleInput) {
+                    elements.slideSubtitleInput.focus();
+                    elements.slideSubtitleInput.select();
+                }
             } else if (action === "add-bullet") {
                 addBullet();
             } else if (action === "add-slide") {

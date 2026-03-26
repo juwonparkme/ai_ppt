@@ -27,6 +27,7 @@ from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.middleware.csrf import get_token
+from django.templatetags.static import static
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
@@ -60,6 +61,28 @@ SOURCE_TEMPLATE_ID_BY_KEY = {
 }
 
 DEFAULT_SOURCE_TEMPLATE_ID = SOURCE_TEMPLATE_ID_BY_KEY["modern-a"]
+
+EDITOR_TEMPLATE_ASSET_FILES = {
+    "modern-a": {
+        "cover": "page-01-img-01.jpg",
+        "introFur": "page-03-img-01.jpg",
+        "splitModel": "page-04-img-01.jpg",
+        "splitTexture": "page-04-img-02.jpg",
+        "vase": "page-05-img-01.png",
+        "hide": "page-06-img-01.jpg",
+        "shirt": "page-06-img-02.jpg",
+        "path": "page-06-img-03.jpg",
+        "bottle": "page-07-img-01.jpg",
+        "redPortrait": "page-07-img-02.jpg",
+        "cactus": "page-08-img-01.png",
+        "leather": "page-09-img-01.jpg",
+        "heels": "page-10-img-01.jpg",
+        "glass": "page-10-img-02.jpg",
+    },
+    "modern-b": {
+        "building": "page-03-img-01.jpg",
+    },
+}
 
 
 def get_openai_client():
@@ -197,6 +220,16 @@ def resolve_source_template_id(raw_value):
     if raw_value in PPTX_TEMPLATE_BY_SOURCE_ID:
         return raw_value
     return SOURCE_TEMPLATE_ID_BY_KEY.get(raw_value, DEFAULT_SOURCE_TEMPLATE_ID)
+
+
+def build_editor_asset_urls():
+    return {
+        template_name: {
+            key: static(f"ppt-assets/{template_name}/{file_name}")
+            for key, file_name in files.items()
+        }
+        for template_name, files in EDITOR_TEMPLATE_ASSET_FILES.items()
+    }
 
 
 def build_history_entries(user_histories):
@@ -943,6 +976,7 @@ def render_result_page(request, payload):
                 "historyId": payload.get("history_id"),
                 "editorUrl": reverse("result_editor"),
                 "csrfToken": get_token(request),
+                "assetUrls": build_editor_asset_urls(),
             },
         },
     )

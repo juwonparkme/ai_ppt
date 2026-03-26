@@ -201,7 +201,7 @@ function renderTitleSlide(slide: PptxSlide, spec: PresentationSpec, item: SlideS
   });
 }
 
-function renderTocSlide(slide: PptxSlide, spec: PresentationSpec) {
+function renderTocSlide(slide: PptxSlide, spec: PresentationSpec, item: SlideSpec) {
   addBaseFrame(slide);
   slide.addText("CONTENTS", {
     x: 4.3,
@@ -218,7 +218,7 @@ function renderTocSlide(slide: PptxSlide, spec: PresentationSpec) {
 
   const detailSlides = spec.slides.filter((item) => item.kind !== "title" && item.kind !== "toc");
   const tocItems = takeBullets(
-    detailSlides.map((item) => item.title),
+    item.bullets.length ? item.bullets : detailSlides.map((detailItem) => detailItem.title),
     6,
     "섹션",
   );
@@ -982,7 +982,7 @@ export function renderModernB(pptx: PptxInstance, spec: PresentationSpec) {
       return;
     }
     if (item.kind === "toc") {
-      renderTocSlide(slide, spec);
+      renderTocSlide(slide, spec, item);
       return;
     }
     if (item.kind === "summary" && detailIndex >= 4) {

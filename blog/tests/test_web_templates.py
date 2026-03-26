@@ -81,6 +81,7 @@ class WebTemplateSmokeTests(TestCase):
         history.result_payload = {
             "title": "Q1 Strategy Deck",
             "download_url": "/download_slide/local-q1",
+            "template": "modern-a",
             "preview_items": [
                 {
                     "kind": "slide",
@@ -102,3 +103,5 @@ class WebTemplateSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "성과 요약")
         self.assertContains(response, "분기 성과 핵심")
+        self.assertContains(response, "presentation_result_template_preview.js")
+        self.assertContains(response, "ppt-assets/modern-a/page-01-img-01.jpg")
