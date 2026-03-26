@@ -78,7 +78,10 @@
             .replaceAll("'", "&#39;");
     }
 
-    function buildSlideCard(preview, index, selectedIndex, onSelect) {
+    function buildSlideCard(preview, index, selectedIndex, onSelect, onDelete) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "relative";
+
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.index = String(index);
@@ -112,7 +115,23 @@
         button.addEventListener("click", function () {
             onSelect(index);
         });
-        return button;
+        wrapper.appendChild(button);
+
+        if (typeof onDelete === "function") {
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className =
+                "absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-on-surface-variant shadow transition hover:bg-surface-container hover:text-primary";
+            deleteButton.setAttribute("aria-label", "슬라이드 삭제");
+            deleteButton.innerHTML = '<span class="material-symbols-outlined text-base">close</span>';
+            deleteButton.addEventListener("click", function (event) {
+                event.stopPropagation();
+                onDelete(index);
+            });
+            wrapper.appendChild(deleteButton);
+        }
+
+        return wrapper;
     }
 
     function renderCanvasBullets(container, slide) {
@@ -125,12 +144,17 @@
             return;
         }
 
-        const bullets = slide.bullets.length ? slide.bullets : ["불릿이 없습니다. 우측에서 추가하세요."];
-        bullets.forEach(function (bullet) {
+        const bullets = slide.bullets.length ? slide.bullets : ["불릿이 없습니다. 상단 버튼으로 추가하세요."];
+        bullets.forEach(function (bullet, index) {
             const item = document.createElement("li");
             item.className = "flex items-start gap-3 text-base leading-7 text-on-surface-variant";
-            item.innerHTML = '<span class="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"></span><span></span>';
-            item.querySelector("span:last-child").textContent = bullet;
+            item.innerHTML =
+                '<span class="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"></span>' +
+                '<span class="editor-bullet-text min-w-0 flex-1 rounded-md px-1 outline-none focus:bg-surface-container-low" contenteditable="true" data-bullet-index="' + index + '" spellcheck="false"></span>' +
+                '<button class="editor-bullet-remove inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-low hover:text-primary" data-bullet-remove-index="' + index + '" type="button">' +
+                '<span class="material-symbols-outlined text-base">close</span>' +
+                "</button>";
+            item.querySelector(".editor-bullet-text").textContent = bullet;
             container.appendChild(item);
         });
     }

@@ -158,10 +158,18 @@ document.addEventListener("DOMContentLoaded", function () {
         elements.slideList.innerHTML = "";
         state.previewItems.forEach(function (preview, index) {
             elements.slideList.appendChild(
-                buildSlideCard(preview, index, state.selectedIndex, function (nextIndex) {
-                    state.selectedIndex = nextIndex;
-                    renderEditor();
-                })
+                buildSlideCard(
+                    preview,
+                    index,
+                    state.selectedIndex,
+                    function (nextIndex) {
+                        state.selectedIndex = nextIndex;
+                        renderEditor();
+                    },
+                    function (deleteIndex) {
+                        deleteSlideAt(deleteIndex);
+                    }
+                )
             );
         });
     }
@@ -195,9 +203,61 @@ document.addEventListener("DOMContentLoaded", function () {
             elements.slideTitle.textContent = slide.title || "Untitled Slide";
         }
         if (elements.slideSubtitle) {
-            elements.slideSubtitle.textContent = slide.subtitle || (supportsBullets(slide) ? "우측에서 불릿을 수정하세요." : "부제목을 입력하세요.");
+            elements.slideSubtitle.textContent = slide.subtitle || (supportsBullets(slide) ? "캔버스나 우측 패널에서 내용을 수정하세요." : "부제목을 입력하세요.");
         }
         renderCanvasBullets(elements.slideBullets, slide);
+        bindCanvasBulletEditors();
+    }
+
+    function bindCanvasBulletEditors() {
+        const bulletEditors = Array.from(document.querySelectorAll(".editor-bullet-text"));
+        const bulletRemoveButtons = Array.from(document.querySelectorAll(".editor-bullet-remove"));
+
+        bulletEditors.forEach(function (editor) {
+            editor.addEventListener("input", function () {
+                const bulletIndex = Number(editor.dataset.bulletIndex || "-1");
+                const slide = getSelectedSlide();
+                if (bulletIndex < 0 || !slide || !slide.bullets) {
+                    return;
+                }
+                slide.bullets[bulletIndex] = editor.textContent || "";
+                markDirty();
+                renderSlideList();
+            });
+
+            editor.addEventListener("blur", function () {
+                const bulletIndex = Number(editor.dataset.bulletIndex || "-1");
+                const slide = getSelectedSlide();
+                if (bulletIndex < 0 || !slide || !slide.bullets) {
+                    return;
+                }
+                const nextValue = (editor.textContent || "").trim();
+                if (nextValue) {
+                    slide.bullets[bulletIndex] = nextValue;
+                    return;
+                }
+                if (slide.bullets.length === 1) {
+                    slide.bullets = [];
+                } else {
+                    slide.bullets.splice(bulletIndex, 1);
+                }
+                markDirty();
+                renderEditor();
+            });
+        });
+
+        bulletRemoveButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                const bulletIndex = Number(button.dataset.bulletRemoveIndex || "-1");
+                const slide = getSelectedSlide();
+                if (bulletIndex < 0 || !slide || !slide.bullets) {
+                    return;
+                }
+                slide.bullets.splice(bulletIndex, 1);
+                markDirty();
+                renderEditor();
+            });
+        });
     }
 
     function createBulletEditor(text, index) {
@@ -325,7 +385,8 @@ document.addEventListener("DOMContentLoaded", function () {
         renderEditor();
     }
 
-    function deleteSlide() {
+    function deleteSlideAt(index) {
+        state.selectedIndex = index;
         if (state.previewItems.length === 1) {
             state.previewItems[0] = createSlide(state.deckTitle, "title");
             state.selectedIndex = 0;
@@ -335,6 +396,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         markDirty();
         renderEditor();
+    }
+
+    function deleteSlide() {
+        deleteSlideAt(state.selectedIndex);
     }
 
     function syncSlideKind(nextKind) {
@@ -493,6 +558,40 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    if (elements.slideTitle) {
+        elements.slideTitle.addEventListener("input", function () {
+            getSelectedSlide().title = cleanText(elements.slideTitle.textContent, "Untitled Slide");
+            if (elements.slideTitleInput) {
+                elements.slideTitleInput.value = getSelectedSlide().title;
+            }
+            markDirty();
+            renderSlideList();
+        });
+
+        elements.slideTitle.addEventListener("blur", function () {
+            getSelectedSlide().title = cleanText(elements.slideTitle.textContent, "Untitled Slide");
+            renderCanvas(getSelectedSlide());
+            renderSlideList();
+        });
+    }
+
+    if (elements.slideSubtitle) {
+        elements.slideSubtitle.addEventListener("input", function () {
+            getSelectedSlide().subtitle = (elements.slideSubtitle.textContent || "").trim();
+            if (elements.slideSubtitleInput) {
+                elements.slideSubtitleInput.value = getSelectedSlide().subtitle;
+            }
+            markDirty();
+            renderSlideList();
+        });
+
+        elements.slideSubtitle.addEventListener("blur", function () {
+            getSelectedSlide().subtitle = (elements.slideSubtitle.textContent || "").trim();
+            renderCanvas(getSelectedSlide());
+            renderSlideList();
+        });
+    }
+
     if (elements.addBullet) {
         elements.addBullet.addEventListener("click", addBullet);
     }
@@ -506,10 +605,10 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.toolbarButtons.forEach(function (button) {
         button.addEventListener("click", function () {
             const action = button.dataset.editorAction;
-            if (action === "focus-title" && elements.slideTitleInput) {
-                elements.slideTitleInput.focus();
-            } else if (action === "focus-subtitle" && elements.slideSubtitleInput) {
-                elements.slideSubtitleInput.focus();
+            if (action === "focus-title" && elements.slideTitle) {
+                elements.slideTitle.focus();
+            } else if (action === "focus-subtitle" && elements.slideSubtitle) {
+                elements.slideSubtitle.focus();
             } else if (action === "add-bullet") {
                 addBullet();
             } else if (action === "add-slide") {
