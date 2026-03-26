@@ -4,13 +4,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from blog.models import UserHistory
+from blog.models import UserHistory, UserTemplate
 from blog.slide_spec import build_slide_spec
 from blog.views import (
     build_attachment_disposition,
+    build_custom_template_source_id,
     encode_local_download_token,
     normalize_output_title,
     resolve_pptx_template,
@@ -47,6 +49,20 @@ class PromptViewTests(TestCase):
             "modern-b",
         )
         self.assertEqual(resolve_pptx_template("unknown-template"), "modern-a")
+
+    def test_resolve_pptx_template_uses_user_template_renderer(self):
+        template = UserTemplate.objects.create(
+            user=self.user,
+            name="Investor Deck",
+            renderer_key="modern-b",
+            original_filename="investor-deck.pptx",
+            source_pptx_path="/tmp/investor-deck.pptx",
+        )
+
+        self.assertEqual(
+            resolve_pptx_template(build_custom_template_source_id(template.id), user=self.user),
+            "modern-b",
+        )
 
     def test_build_attachment_disposition_includes_fallback_and_utf8_name(self):
         header = build_attachment_disposition("파이썬 개요.pptx")
@@ -257,6 +273,73 @@ class PromptViewTests(TestCase):
         self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
         history = UserHistory.objects.get(user=self.user, ppt_title="Disk_Deck")
         self.assertTrue(Path(history.file_path).exists())
+
+    def test_template_library_upload_creates_user_template(self):
+        temp_dir = Path(tempfile.mkdtemp(prefix="ppt-user-template-"))
+
+        with override_settings(USER_TEMPLATE_STORAGE_DIR=str(temp_dir)):
+            self.client.force_login(self.user)
+            response = self.client.post(
+                reverse("template_library"),
+                {
+                    "name": "Custom Pitch Deck",
+                    "renderer_key": "modern-b",
+                    "source_pptx": SimpleUploadedFile(
+                        "custom-pitch.pptx",
+                        b"pptx-template",
+                        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    ),
+                },
+                HTTP_HOST="127.0.0.1",
+            )
+
+        template = UserTemplate.objects.get(user=self.user, name="Custom Pitch Deck")
+        self.assertRedirects(
+            response,
+            f"{reverse('prompt')}?template={build_custom_template_source_id(template.id)}",
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(Path(template.source_pptx_path).exists())
+        self.assertEqual(template.renderer_key, "modern-b")
+
+    @override_settings(PPT_RENDER_BACKEND="pptxgenjs")
+    @patch("blog.views.reserve_render_output_dir", return_value=("Custom_Deck", Path("/tmp/rendered/Custom_Deck")))
+    @patch("blog.views.render_presentation")
+    @patch("blog.views.build_presentation_agent")
+    def test_prompt_post_uses_custom_template_renderer_mapping(
+        self,
+        mock_build_presentation_agent,
+        mock_render_presentation,
+        mock_reserve_render_output_dir,
+    ):
+        custom_template = UserTemplate.objects.create(
+            user=self.user,
+            name="Custom Pitch",
+            renderer_key="modern-b",
+            original_filename="custom-pitch.pptx",
+            source_pptx_path="/tmp/custom-pitch.pptx",
+        )
+        fake_agent = SimpleNamespace(
+            generate_filename=Mock(return_value="Custom Deck"),
+            run=Mock(return_value=self.make_agent_result("AI topic", "Custom_Deck", template="modern-b")),
+        )
+        mock_build_presentation_agent.return_value = fake_agent
+        mock_render_presentation.return_value = {
+            "outputPath": "/tmp/rendered/Custom_Deck/Custom_Deck.pptx",
+            "slideCount": 3,
+        }
+
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("prompt"),
+            {"presentation_id": build_custom_template_source_id(custom_template.id), "user-input": "AI topic"},
+            HTTP_HOST="127.0.0.1",
+        )
+
+        self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
+        fake_agent.run.assert_called_once_with("AI topic", output_title="Custom_Deck", template="modern-b")
+        render_spec = mock_render_presentation.call_args.args[0]
+        self.assertEqual(render_spec["template"], "modern-b")
 
     def test_result_editor_save_updates_session_and_history_payload(self):
         history = UserHistory.objects.create(

@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from blog.models import UserHistory
+from blog.models import UserHistory, UserTemplate
 
 
 class WebTemplateSmokeTests(TestCase):
@@ -38,6 +38,32 @@ class WebTemplateSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "AI 도입 전략")
         self.assertContains(response, "템플릿 선택")
+        self.assertContains(response, reverse("template_library"))
+
+    def test_prompt_lists_uploaded_custom_template(self):
+        UserTemplate.objects.create(
+            user=self.user,
+            name="My Brand Template",
+            renderer_key="modern-b",
+            original_filename="brand-template.pptx",
+            source_pptx_path="/tmp/brand-template.pptx",
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("prompt"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "My Brand Template")
+        self.assertContains(response, "brand-template.pptx")
+
+    def test_template_library_renders_upload_form(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("template_library"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "내 PPT 템플릿 추가")
+        self.assertContains(response, 'name="source_pptx"', html=False)
 
     def test_password_change_renders_actual_password_fields(self):
         self.client.force_login(self.user)

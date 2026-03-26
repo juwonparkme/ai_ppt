@@ -173,6 +173,9 @@ PPT_RENDERER_DIR = os.getenv("PPT_RENDERER_DIR", str(BASE_DIR / "ppt-renderer"))
 PPT_RENDER_OUTPUT_DIR = os.getenv(
     "PPT_RENDER_OUTPUT_DIR", str(BASE_DIR / "tmp" / "rendered-presentations")
 )
+USER_TEMPLATE_STORAGE_DIR = os.getenv(
+    "USER_TEMPLATE_STORAGE_DIR", str(BASE_DIR / "tmp" / "user-templates")
+)
 
 # 세션과 만료시 로그아웃
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'

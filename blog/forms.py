@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.forms import TextInput, EmailInput, NumberInput, PasswordInput
-from .models import CustomUser
+from .models import CustomUser, UserTemplate
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.forms import PasswordChangeForm #비밀번호 변경
 from django.contrib.auth.models import User
@@ -100,3 +100,50 @@ class UserUpdateForm(UserChangeForm):
     class Meta:  # ✅ 올바른 들여쓰기 (4칸)
         model = CustomUser
         fields = ('username', 'email', 'nickname')
+
+
+class CustomTemplateUploadForm(forms.ModelForm):
+    source_pptx = forms.FileField()
+
+    class Meta:
+        model = UserTemplate
+        fields = ["name", "renderer_key", "source_pptx"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "w-full rounded-[22px] border border-outline-variant/15 bg-surface-container-low px-5 py-4 text-sm font-semibold text-on-surface outline-none transition focus:border-primary focus:bg-surface-container-lowest",
+                    "placeholder": "예: 투자자 피치덱 템플릿",
+                }
+            ),
+            "renderer_key": forms.Select(
+                attrs={
+                    "class": "w-full rounded-[22px] border border-outline-variant/15 bg-surface-container-low px-5 py-4 text-sm font-semibold text-on-surface outline-none transition focus:border-primary focus:bg-surface-container-lowest",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["renderer_key"].label = "기반 렌더 템플릿"
+        self.fields["source_pptx"].widget.attrs.update(
+            {
+                "class": "block w-full rounded-[22px] border border-dashed border-outline-variant/25 bg-surface-container-low px-5 py-4 text-sm font-semibold text-on-surface file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-xs file:font-bold file:text-white hover:file:opacity-90",
+                "accept": ".pptx",
+            }
+        )
+
+    def clean_name(self):
+        name = (self.cleaned_data.get("name") or "").strip()
+        if len(name) < 2:
+            raise forms.ValidationError("템플릿 이름은 2자 이상이어야 합니다.")
+        return name
+
+    def clean_source_pptx(self):
+        uploaded = self.cleaned_data.get("source_pptx")
+        if not uploaded:
+            raise forms.ValidationError("PPT 템플릿 파일을 업로드해 주세요.")
+        if not uploaded.name.lower().endswith(".pptx"):
+            raise forms.ValidationError(".pptx 파일만 업로드할 수 있습니다.")
+        if uploaded.size > 30 * 1024 * 1024:
+            raise forms.ValidationError("30MB 이하 파일만 업로드할 수 있습니다.")
+        return uploaded

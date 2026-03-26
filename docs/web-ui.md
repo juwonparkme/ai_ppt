@@ -8,6 +8,8 @@
   - `templates/landing_home.html`
 - `figma 1/AI생성워크플로우.html`
   - `blog/templates/blog/presentation_prompt.html`
+- 커스텀 템플릿 라이브러리
+  - `blog/templates/blog/template_library.html`
 - `figma 1/내정보.html`
   - `blog/templates/blog/account_profile.html`
 - `figma 1/편집기.html`
@@ -35,7 +37,13 @@
 - 프롬프트 화면
   - `GET /prompt/?topic=...` 지원
   - `GET /prompt/?template=modern-a|modern-b|default` 지원
+  - `GET /prompt/?template=user-template-<id>` 지원
   - 템플릿 1개 선택 후 POST
+- 템플릿 라이브러리
+  - `GET/POST /templates/`
+  - 사용자가 `.pptx` 업로드 가능
+  - 업로드 파일은 `tmp/user-templates/<user-id>/` 저장
+  - 각 업로드 항목은 `modern-a` 또는 `modern-b` 기반 렌더 템플릿에 연결
 - 결과 화면
   - 세션 `last_result` 기준으로 편집기 셸 렌더
   - `result/history/<id>/` 로 저장된 결과 payload 재열기 지원

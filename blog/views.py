@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from googleapiclient.errors import HttpError
 from .forms import (
     CustomPasswordChangeForm,
+    CustomTemplateUploadForm,
     ProfileUpdateForm,
     SignUpForm,
     UserUpdateForm,
@@ -31,7 +32,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .models import UserHistory
+from .models import UserHistory, UserTemplate
 from .services.editor_payload import (
     build_presentation_spec_from_payload,
     normalize_result_payload as normalize_editor_result_payload,
@@ -61,6 +62,38 @@ SOURCE_TEMPLATE_ID_BY_KEY = {
 }
 
 DEFAULT_SOURCE_TEMPLATE_ID = SOURCE_TEMPLATE_ID_BY_KEY["modern-a"]
+CUSTOM_TEMPLATE_SOURCE_PREFIX = "user-template-"
+BUILT_IN_TEMPLATE_CARDS = [
+    {
+        "source_id": "1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50",
+        "eyebrow": "Template 1",
+        "title": "design_tem1",
+        "description": "에디토리얼 톤. 강한 대비, 큰 메시지, 발표용 헤드라인.",
+        "preview_static_path": "css/img/design_tem1_preview.png",
+        "template_key": "modern-a",
+    },
+    {
+        "source_id": "19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4",
+        "eyebrow": "Template 2",
+        "title": "design_tem2",
+        "description": "클린 블루 톤. 리포트형 구성과 안정적인 여백.",
+        "preview_static_path": "css/img/design_tem2_preview.png",
+        "template_key": "modern-b",
+    },
+    {
+        "source_id": "1QTy_L8GU-fDZV5jE9ZO5aEuW2l1eDcFa6NH5BOYR8Ak",
+        "eyebrow": "Template 3",
+        "title": "기본형",
+        "description": "빠른 초안용. 구조 확인 후 바로 결과 화면으로.",
+        "preview_static_path": "css/img/template3.jpg",
+        "template_key": "modern-a",
+    },
+]
+
+PREVIEW_STATIC_BY_RENDERER = {
+    "modern-a": "css/img/design_tem1_preview.png",
+    "modern-b": "css/img/design_tem2_preview.png",
+}
 
 EDITOR_TEMPLATE_ASSET_FILES = {
     "modern-a": {
@@ -106,6 +139,93 @@ def normalize_output_title(raw_title):
     return title.rstrip("._") or "presentation"
 
 
+def build_custom_template_source_id(template_id):
+    return f"{CUSTOM_TEMPLATE_SOURCE_PREFIX}{template_id}"
+
+
+def parse_custom_template_source_id(raw_value):
+    if not raw_value or not raw_value.startswith(CUSTOM_TEMPLATE_SOURCE_PREFIX):
+        return None
+    suffix = raw_value.removeprefix(CUSTOM_TEMPLATE_SOURCE_PREFIX)
+    if not suffix.isdigit():
+        return None
+    return int(suffix)
+
+
+def get_user_template_for_source_id(raw_value, user):
+    template_id = parse_custom_template_source_id(raw_value)
+    if not template_id or not getattr(user, "is_authenticated", False):
+        return None
+    try:
+        return UserTemplate.objects.get(id=template_id, user=user)
+    except UserTemplate.DoesNotExist:
+        return None
+
+
+def sanitize_upload_filename(filename):
+    original_name = Path(filename).name
+    stem = re.sub(r"[^\w.-]", "_", Path(original_name).stem, flags=re.UNICODE).strip("._")
+    stem = re.sub(r"_+", "_", stem)
+    return f"{stem or 'template'}.pptx"
+
+
+def save_uploaded_user_template_file(user, uploaded_file):
+    root_dir = Path(settings.USER_TEMPLATE_STORAGE_DIR) / str(user.id)
+    root_dir.mkdir(parents=True, exist_ok=True)
+    base_name = sanitize_upload_filename(uploaded_file.name)
+    stem = Path(base_name).stem
+    candidate = root_dir / base_name
+    while candidate.exists():
+        candidate = root_dir / f"{stem}_{random.randint(1000, 9999)}.pptx"
+    with candidate.open("wb+") as destination:
+        for chunk in uploaded_file.chunks():
+            destination.write(chunk)
+    return str(candidate)
+
+
+def preview_image_for_renderer(renderer_key):
+    return static(PREVIEW_STATIC_BY_RENDERER.get(renderer_key, PREVIEW_STATIC_BY_RENDERER["modern-a"]))
+
+
+def build_prompt_template_cards(user):
+    cards = [
+        {
+            "source_id": card["source_id"],
+            "eyebrow": card["eyebrow"],
+            "title": card["title"],
+            "description": card["description"],
+            "preview_url": static(card["preview_static_path"]),
+            "is_custom": False,
+        }
+        for card in BUILT_IN_TEMPLATE_CARDS
+    ]
+
+    if getattr(user, "is_authenticated", False):
+        custom_templates = UserTemplate.objects.filter(user=user)
+        for template in custom_templates:
+            cards.append(
+                {
+                    "source_id": build_custom_template_source_id(template.id),
+                    "eyebrow": "Custom",
+                    "title": template.name,
+                    "description": f"{template.get_renderer_key_display()} 기반 · {template.original_filename}",
+                    "preview_url": preview_image_for_renderer(template.renderer_key),
+                    "is_custom": True,
+                }
+            )
+    return cards
+
+
+def build_prompt_context(request, *, selected_template_source_id=None):
+    selected_value = resolve_source_template_id(selected_template_source_id or request.GET.get("template"), user=request.user)
+    return {
+        "prefilled_topic": request.GET.get("topic", "").strip(),
+        "recent_history_entries": recent_history_entries_for(request.user, limit=3),
+        "selected_template_source_id": selected_value,
+        "template_cards": build_prompt_template_cards(request.user),
+    }
+
+
 def is_pptxgenjs_backend():
     return settings.PPT_RENDER_BACKEND == "pptxgenjs"
 
@@ -114,7 +234,10 @@ def build_presentation_agent(client=None):
     return PresentationAgent(client or get_openai_client())
 
 
-def resolve_pptx_template(presentation_id):
+def resolve_pptx_template(presentation_id, user=None):
+    custom_template = get_user_template_for_source_id(presentation_id, user)
+    if custom_template:
+        return custom_template.renderer_key
     return PPTX_TEMPLATE_BY_SOURCE_ID.get(presentation_id, "modern-a")
 
 
@@ -214,12 +337,22 @@ def store_last_result(request, payload):
     request.session["last_result"] = normalize_result_payload(payload)
 
 
-def resolve_source_template_id(raw_value):
+def resolve_source_template_id(raw_value, user=None):
     if not raw_value:
         return DEFAULT_SOURCE_TEMPLATE_ID
+    custom_template = get_user_template_for_source_id(raw_value, user)
+    if custom_template:
+        return build_custom_template_source_id(custom_template.id)
     if raw_value in PPTX_TEMPLATE_BY_SOURCE_ID:
         return raw_value
     return SOURCE_TEMPLATE_ID_BY_KEY.get(raw_value, DEFAULT_SOURCE_TEMPLATE_ID)
+
+
+def resolve_google_template_source_id(raw_value, user=None):
+    custom_template = get_user_template_for_source_id(raw_value, user)
+    if custom_template:
+        return SOURCE_TEMPLATE_ID_BY_KEY.get(custom_template.renderer_key, DEFAULT_SOURCE_TEMPLATE_ID)
+    return resolve_source_template_id(raw_value, user=user)
 
 
 def build_editor_asset_urls():
@@ -414,6 +547,34 @@ def Sign_in_home(request):
     #     return redirect('sign_in')  # ✅ 로그인한 경우 홈으로 이동
     return render(request, 'landing_home.html', build_home_context(request))
 
+
+@login_required(login_url='/login/')
+def template_library(request):
+    if request.method == "POST":
+        form = CustomTemplateUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded_file = form.cleaned_data["source_pptx"]
+            stored_path = save_uploaded_user_template_file(request.user, uploaded_file)
+            template = form.save(commit=False)
+            template.user = request.user
+            template.original_filename = uploaded_file.name
+            template.source_pptx_path = stored_path
+            template.save()
+            messages.success(request, "커스텀 템플릿이 추가되었습니다.")
+            return redirect(f"{reverse('prompt')}?template={build_custom_template_source_id(template.id)}")
+        messages.error(request, "템플릿 업로드에 실패했습니다. 입력값을 확인해 주세요.")
+    else:
+        form = CustomTemplateUploadForm()
+
+    return render(
+        request,
+        'blog/template_library.html',
+        {
+            "form": form,
+            "user_templates": UserTemplate.objects.filter(user=request.user),
+        },
+    )
+
 @login_required(login_url='/login/')
 def prompt(request):
     # form = ProfileUpdateForm(request.POST, instance=request.user)
@@ -424,8 +585,9 @@ def prompt(request):
     global filename
     global ppt_link
     if request.method == "POST":
-        presentation_id = resolve_source_template_id(request.POST.get("presentation_id"))
-        template_key = resolve_pptx_template(presentation_id)
+        selected_source_id = request.POST.get("presentation_id")
+        presentation_id = resolve_google_template_source_id(selected_source_id, user=request.user)
+        template_key = resolve_pptx_template(selected_source_id, user=request.user)
         print(presentation_id, "입력받은 ID값")
         source_topic = request.POST.get("user-input", "").strip()
         SLIDE_TITLE_TEXT = source_topic
@@ -513,11 +675,10 @@ def prompt(request):
         return render(
             request,
             'blog/presentation_prompt.html',
-            {
-                "prefilled_topic": request.GET.get("topic", "").strip(),
-                "recent_history_entries": recent_history_entries_for(request.user, limit=3),
-                "selected_template_source_id": resolve_source_template_id(request.GET.get("template")),
-            },
+            build_prompt_context(
+                request,
+                selected_template_source_id=request.GET.get("template"),
+            ),
         )
 
 # -- 프롬프트 --#######################################################################################

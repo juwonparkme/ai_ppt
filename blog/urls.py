@@ -13,6 +13,7 @@ urlpatterns = [
     path('logout/', user_logout, name='logout'),
     path('main/', Sign_in_home, name='sign_in'),
     path('password_change/', password_change, name='password_change'),
+    path('templates/', views.template_library, name='template_library'),
     path('prompt/', prompt, name='prompt'),
     # path("chat/", chat_view, name="chat"),
     path('result/', views.display_slides, name='result'),

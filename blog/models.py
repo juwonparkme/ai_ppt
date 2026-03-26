@@ -9,9 +9,9 @@
 #     def __str__(self):
 #         return self.username
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.conf import settings
 
 class CustomUser(AbstractUser):
     nickname = models.CharField(max_length=50, unique=True)
@@ -52,3 +52,23 @@ class UserHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.ppt_title} ({self.status})"
+
+
+class UserTemplate(models.Model):
+    RENDERER_CHOICES = [
+        ("modern-a", "Template 1"),
+        ("modern-b", "Template 2"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(max_length=120)
+    renderer_key = models.CharField(max_length=32, choices=RENDERER_CHOICES, default="modern-a")
+    original_filename = models.CharField(max_length=255)
+    source_pptx_path = models.CharField(max_length=500)
+    create_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-create_date"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"
