@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const slideTitle = document.getElementById("editor-slide-title");
     const slideSubtitle = document.getElementById("editor-slide-subtitle");
     const slideBullets = document.getElementById("editor-slide-bullets");
-    const slideIndex = document.getElementById("editor-slide-index");
     const inspectorSlideTitle = document.getElementById("inspector-slide-title");
     const inspectorSlideSubtitle = document.getElementById("inspector-slide-subtitle");
     const downloadLink = document.getElementById("result-download");
@@ -39,10 +38,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const index = Number(item.dataset.index || "0");
         const preview = previewItems[index] || {};
         const kind = preview.kind;
-
-        if (slideIndex) {
-            slideIndex.textContent = "Slide " + (index + 1);
-        }
 
         if (kind === "image") {
             if (slideKind) {
