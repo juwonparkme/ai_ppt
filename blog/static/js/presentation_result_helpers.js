@@ -78,7 +78,9 @@
             .replaceAll("'", "&#39;");
     }
 
-    function buildSlideCard(preview, index, selectedIndex, onSelect, onDelete) {
+    function buildSlideCard(preview, index, selectedIndex, onSelect, onDelete, options) {
+        const opts = options || {};
+        const templatePreview = window.PresentationResultTemplatePreview || {};
         const wrapper = document.createElement("div");
         wrapper.className = "relative";
 
@@ -91,7 +93,20 @@
             button.classList.add("ring-2", "ring-primary");
         }
 
-        if (preview.kind === "image") {
+        if (typeof templatePreview.renderThumbnailPreview === "function") {
+            button.innerHTML =
+                '<div class="aspect-video overflow-hidden rounded-xl bg-surface-container shadow-sm">' +
+                templatePreview.renderThumbnailPreview({
+                    slide: preview,
+                    previewItems: Array.isArray(opts.previewItems) ? opts.previewItems : [preview],
+                    selectedIndex: index,
+                    template: opts.template || "modern-a",
+                    assetUrls: opts.assetUrls || {},
+                    deckTitle: opts.deckTitle || preview.title || "Presentation",
+                }) +
+                "</div>" +
+                '<p class="mt-2 truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">Slide ' + (index + 1) + "</p>";
+        } else if (preview.kind === "image") {
             button.innerHTML =
                 '<div class="aspect-video overflow-hidden rounded-xl bg-surface-container">' +
                 '<img alt="slide preview" class="h-full w-full object-cover" src="' + preview.image_url + '" />' +

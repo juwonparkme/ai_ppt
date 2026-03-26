@@ -18,6 +18,13 @@
         style.id = "presentation-result-template-preview-styles";
         style.textContent = `
             .tp-template{position:relative;width:100%;height:100%;overflow:hidden}
+            .tp-thumb-shell{position:relative;width:100%;height:100%;overflow:hidden;background:#fff;pointer-events:none}
+            .tp-thumb-stage{width:1280px;height:720px;transform:scale(.1875);transform-origin:top left}
+            .tp-thumb-shell .tp-remove{display:none !important}
+            .tp-thumb-shell .tp-editable{pointer-events:none;user-select:none}
+            .tp-thumb-shell .tp-editable:focus{background:none;box-shadow:none}
+            .tp-thumb-shell .tp-empty{padding:10px 12px;font-size:10px}
+            .tp-thumb-shell .tp-editable[data-placeholder]:empty::before{content:""}
             .tp-editable{outline:none;cursor:text}
             .tp-editable[data-placeholder]:empty::before{content:attr(data-placeholder);color:rgba(38,35,33,.36)}
             .tp-modern-b .tp-editable[data-placeholder]:empty::before{color:rgba(38,33,38,.35)}
@@ -720,7 +727,29 @@
         });
     }
 
+    function renderThumbnailPreview(context) {
+        ensureStyles();
+        const slide = context.slide || {};
+
+        if (slide.kind === "image") {
+            return `
+                <div class="tp-thumb-shell">
+                    <img alt="slide preview" src="${escapeHtml(slide.image_url || "")}" style="width:100%;height:100%;object-fit:cover;" />
+                </div>
+            `;
+        }
+
+        return `
+            <div class="tp-thumb-shell">
+                <div class="tp-thumb-stage">
+                    ${renderCanvasPreview(context)}
+                </div>
+            </div>
+        `;
+    }
+
     window.PresentationResultTemplatePreview = {
         renderCanvasPreview: renderCanvasPreview,
+        renderThumbnailPreview: renderThumbnailPreview,
     };
 })();

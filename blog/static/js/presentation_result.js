@@ -194,6 +194,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     },
                     function (deleteIndex) {
                         deleteSlideAt(deleteIndex);
+                    },
+                    {
+                        previewItems: state.previewItems,
+                        template: state.template,
+                        assetUrls: state.assetUrls,
+                        deckTitle: state.deckTitle,
                     }
                 )
             );
