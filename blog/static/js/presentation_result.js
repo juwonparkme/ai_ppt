@@ -80,6 +80,7 @@ document.addEventListener("DOMContentLoaded", function () {
         isSaving: false,
         isRendering: false,
         saveTimer: 0,
+        activeCanvasElement: null,
     };
 
     if (!state.previewItems.length) {
@@ -88,6 +89,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function getSelectedSlide() {
         return state.previewItems[state.selectedIndex] || state.previewItems[0];
+    }
+
+    function clearCanvasSelection() {
+        if (!state.activeCanvasElement) {
+            return;
+        }
+        state.activeCanvasElement.style.boxShadow = "";
+        state.activeCanvasElement.style.backgroundColor = "";
+        state.activeCanvasElement = null;
+    }
+
+    function setCanvasSelection(element) {
+        if (!element) {
+            return;
+        }
+        clearCanvasSelection();
+        state.activeCanvasElement = element;
+        state.activeCanvasElement.style.boxShadow = "0 0 0 2px rgba(79, 70, 229, 0.18)";
+        state.activeCanvasElement.style.backgroundColor = "rgba(79, 70, 229, 0.06)";
+    }
+
+    function selectEditableText(element) {
+        if (!element) {
+            return;
+        }
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        selection.removeAllRanges();
+        selection.addRange(range);
     }
 
     function showToast(title, message) {
@@ -214,6 +245,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const bulletRemoveButtons = Array.from(document.querySelectorAll(".editor-bullet-remove"));
 
         bulletEditors.forEach(function (editor) {
+            editor.addEventListener("focus", function () {
+                setCanvasSelection(editor);
+            });
+
+            editor.addEventListener("click", function () {
+                setCanvasSelection(editor);
+            });
+
             editor.addEventListener("input", function () {
                 const bulletIndex = Number(editor.dataset.bulletIndex || "-1");
                 const slide = getSelectedSlide();
@@ -559,6 +598,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (elements.slideTitle) {
+        elements.slideTitle.addEventListener("focus", function () {
+            setCanvasSelection(elements.slideTitle);
+        });
+
+        elements.slideTitle.addEventListener("click", function () {
+            setCanvasSelection(elements.slideTitle);
+        });
+
         elements.slideTitle.addEventListener("input", function () {
             getSelectedSlide().title = cleanText(elements.slideTitle.textContent, "Untitled Slide");
             if (elements.slideTitleInput) {
@@ -576,6 +623,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (elements.slideSubtitle) {
+        elements.slideSubtitle.addEventListener("focus", function () {
+            setCanvasSelection(elements.slideSubtitle);
+        });
+
+        elements.slideSubtitle.addEventListener("click", function () {
+            setCanvasSelection(elements.slideSubtitle);
+        });
+
         elements.slideSubtitle.addEventListener("input", function () {
             getSelectedSlide().subtitle = (elements.slideSubtitle.textContent || "").trim();
             if (elements.slideSubtitleInput) {
@@ -607,8 +662,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const action = button.dataset.editorAction;
             if (action === "focus-title" && elements.slideTitle) {
                 elements.slideTitle.focus();
+                setCanvasSelection(elements.slideTitle);
+                selectEditableText(elements.slideTitle);
             } else if (action === "focus-subtitle" && elements.slideSubtitle) {
                 elements.slideSubtitle.focus();
+                setCanvasSelection(elements.slideSubtitle);
+                selectEditableText(elements.slideSubtitle);
             } else if (action === "add-bullet") {
                 addBullet();
             } else if (action === "add-slide") {
