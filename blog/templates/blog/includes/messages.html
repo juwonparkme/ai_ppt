@@ -1,7 +1,7 @@
 {% if messages %}
-    <div class="fixed right-4 top-4 z-[120] flex w-[min(92vw,24rem)] flex-col gap-3">
+    <div class="fixed right-4 top-4 z-[120] flex w-[min(92vw,24rem)] flex-col gap-3" id="flash-messages">
         {% for message in messages %}
-            <div class="rounded-2xl border border-white/70 bg-surface-container-lowest/95 px-4 py-3 shadow-soft backdrop-blur">
+            <div class="transform rounded-2xl border border-white/70 bg-surface-container-lowest/95 px-4 py-3 shadow-soft backdrop-blur transition duration-300 ease-out" data-flash-message>
                 <div class="flex items-start gap-3">
                     <span class="material-symbols-outlined mt-0.5 text-sm {% if message.tags == 'success' %}text-secondary{% elif message.tags == 'error' %}text-error{% else %}text-primary{% endif %}">
                         {% if message.tags == "success" %}
@@ -17,4 +17,24 @@
             </div>
         {% endfor %}
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const container = document.getElementById("flash-messages");
+            const flashMessages = Array.from(document.querySelectorAll("[data-flash-message]"));
+
+            if (!container || !flashMessages.length) {
+                return;
+            }
+
+            window.setTimeout(function () {
+                flashMessages.forEach(function (message) {
+                    message.classList.add("opacity-0", "-translate-y-2");
+                });
+            }, 2600);
+
+            window.setTimeout(function () {
+                container.remove();
+            }, 3000);
+        });
+    </script>
 {% endif %}
