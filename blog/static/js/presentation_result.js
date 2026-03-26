@@ -360,19 +360,29 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    function autoResizeTextarea(textarea) {
+        if (!textarea) {
+            return;
+        }
+        textarea.style.height = "0px";
+        textarea.style.height = Math.max(textarea.scrollHeight, 112) + "px";
+    }
+
     function createBulletEditor(text, index) {
         const wrapper = document.createElement("div");
         wrapper.className = "flex items-start gap-2";
         wrapper.innerHTML =
-            '<textarea class="min-h-20 flex-1 rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm leading-6 text-on-surface outline-none transition focus:border-primary"></textarea>' +
+            '<textarea class="min-h-20 flex-1 resize-none overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm leading-6 text-on-surface outline-none transition focus:border-primary"></textarea>' +
             '<button class="rounded-2xl border border-outline-variant/20 px-3 py-3 text-xs font-semibold text-on-surface-variant transition hover:bg-surface-container" type="button">삭제</button>';
 
         const textarea = wrapper.querySelector("textarea");
         const removeButton = wrapper.querySelector("button");
         textarea.value = text;
+        autoResizeTextarea(textarea);
 
         textarea.addEventListener("input", function () {
             const slide = getSelectedSlide();
+            autoResizeTextarea(textarea);
             slide.bullets[index] = textarea.value;
             markDirty();
             renderCanvas(slide);
