@@ -1,6 +1,7 @@
 import pickle
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
+from urllib.parse import quote
 from django.shortcuts import render, redirect
 from googleapiclient.errors import HttpError
 from .forms import SignUpForm, UserUpdateForm, ProfileUpdateForm
@@ -118,6 +119,20 @@ def resolve_local_download_path(token):
         raise Http404("허용되지 않은 파일 경로입니다.") from exc
     actual_path = resolve_existing_local_file(requested_path)
     return requested_path, actual_path
+
+
+def ascii_download_name(filename):
+    stem = re.sub(r"\.pptx$", "", filename, flags=re.IGNORECASE)
+    ascii_name = stem.encode("ascii", "ignore").decode("ascii")
+    ascii_name = re.sub(r"[^A-Za-z0-9._-]", "_", ascii_name)
+    ascii_name = re.sub(r"_+", "_", ascii_name).strip("._")
+    return f"{ascii_name or 'presentation'}.pptx"
+
+
+def build_attachment_disposition(filename):
+    fallback = ascii_download_name(filename)
+    encoded = quote(filename)
+    return f'attachment; filename="{fallback}"; filename*=utf-8\'\'{encoded}'
 
 
 def store_last_result(request, *, title, download_url, preview_items, backend):
@@ -990,12 +1005,13 @@ def download_slide(request, presentation_id):
     try:
         if presentation_id.startswith("local-"):
             requested_path, file_path = resolve_local_download_path(presentation_id)
-            return FileResponse(
+            response = FileResponse(
                 file_path.open("rb"),
-                as_attachment=True,
-                filename=requested_path.name,
+                as_attachment=False,
                 content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             )
+            response["Content-Disposition"] = build_attachment_disposition(requested_path.name)
+            return response
 
         # logger.info(f"Starting download_pptx for {presentation_id}")
         return download_pptx(presentation_id)

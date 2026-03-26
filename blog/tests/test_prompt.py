@@ -9,6 +9,7 @@ from django.urls import reverse
 from blog.models import UserHistory
 from blog.slide_spec import build_slide_spec
 from blog.views import (
+    build_attachment_disposition,
     encode_local_download_token,
     normalize_output_title,
     resolve_pptx_template,
@@ -45,6 +46,13 @@ class PromptViewTests(TestCase):
             "modern-b",
         )
         self.assertEqual(resolve_pptx_template("unknown-template"), "modern-a")
+
+    def test_build_attachment_disposition_includes_fallback_and_utf8_name(self):
+        header = build_attachment_disposition("파이썬 개요.pptx")
+
+        self.assertIn('attachment; filename="presentation.pptx"', header)
+        self.assertIn("filename*=utf-8''", header)
+        self.assertIn("%ED%8C%8C%EC%9D%B4%EC%8D%AC%20%EA%B0%9C%EC%9A%94.pptx", header)
 
     def make_agent_result(self, source_topic, output_title, template="modern-a"):
         overview_text = (
@@ -199,6 +207,7 @@ class PromptViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.presentationml.presentation")
         self.assertIn('attachment; filename="deck.pptx"', response["Content-Disposition"])
+        self.assertIn("filename*=utf-8''deck.pptx", response["Content-Disposition"])
 
     @override_settings(PPT_RENDER_OUTPUT_DIR="/tmp/rendered-presentations")
     def test_download_slide_uses_legacy_pptx_file_with_normalized_filename(self):
