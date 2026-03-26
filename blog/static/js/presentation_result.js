@@ -34,7 +34,6 @@ document.addEventListener("DOMContentLoaded", function () {
         slideList: document.getElementById("editor-slide-list"),
         slideCountPill: document.getElementById("editor-slide-count-pill"),
         slideCountFooter: document.getElementById("editor-slide-count-footer"),
-        slideCountInspector: document.getElementById("editor-slide-count-inspector"),
         backendFooter: document.getElementById("editor-backend-footer"),
         imagePreview: document.getElementById("editor-image-preview"),
         textPreview: document.getElementById("editor-text-preview"),
@@ -168,9 +167,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         if (elements.slideCountFooter) {
             elements.slideCountFooter.textContent = text;
-        }
-        if (elements.slideCountInspector) {
-            elements.slideCountInspector.textContent = text;
         }
         if (elements.backendFooter) {
             elements.backendFooter.textContent = backendFooterLabel(state.backend);
