@@ -27,15 +27,16 @@
                 <div class="mb-8 flex flex-col gap-8 md:flex-row">
                     <div class="flex flex-col items-center gap-4">
                         {% if user.profile_image %}
-                            <img alt="프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" src="{{ user.profile_image.url }}" />
+                            <img alt="프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" data-default-src="{{ user.profile_image.url }}" id="profile-image-preview" src="{{ user.profile_image.url }}" />
                         {% else %}
-                            <img alt="기본 프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" src="{% static 'css/img/default_profile_user.png' %}" />
+                            <img alt="기본 프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" data-default-src="{% static 'css/img/default_profile_user.png' %}" id="profile-image-preview" src="{% static 'css/img/default_profile_user.png' %}" />
                         {% endif %}
                         <span class="text-[10px] font-bold uppercase tracking-[0.26em] text-on-surface-variant">Profile Photo</span>
                         <label class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm font-semibold text-primary transition hover:bg-surface-container-high" for="id_profile_image">
                             사진 선택
                         </label>
                         <input accept=".png,.jpg,.jpeg,.webp,.gif,image/*" class="hidden" id="id_profile_image" name="profile_image" type="file" />
+                        <p class="text-center text-xs font-medium text-primary" id="profile-image-filename">선택 즉시 미리보기 반영</p>
                         <p class="text-center text-xs leading-5 text-on-surface-variant">PNG, JPG, WEBP, GIF · 최대 10MB</p>
                         {% if form.profile_image.errors %}
                             <div class="space-y-1 text-center">
@@ -139,6 +140,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'js/account_profile.js' %}" defer></script>
 <script>
     function confirmDelete() {
         return confirm("정말 삭제하시겠습니까?");

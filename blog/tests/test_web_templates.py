@@ -87,6 +87,8 @@ class WebTemplateSmokeTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="profile_image"', html=False)
+        self.assertContains(response, 'id="profile-image-preview"', html=False)
+        self.assertContains(response, "js/account_profile.js")
         self.assertNotContains(response, "Studio Summary")
 
     def test_profile_redirects_to_custom_login_when_signed_out(self):
