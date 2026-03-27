@@ -501,15 +501,12 @@ def profile_view(request):
     history_entries = build_history_entries(user_histories)
 
     if request.method == 'POST':
-        form = ProfileUpdateForm(request.POST, instance=request.user)
+        form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user)
 
         if form.is_valid():
-            # user_id = form.cleaned_data['id']
-            # print(user_id)
             form.save()
             messages.success(request, "프로필이 성공적으로 업데이트되었습니다.")
-            # return redirect('profile')  # 새로고침하면서 반영됨
-            return render(request, 'blog/account_profile.html', {'form': form, 'history_entries': history_entries})  # 👈 데이터 유지
+            return redirect('profile')
     else:
         form = ProfileUpdateForm(instance=request.user)
 

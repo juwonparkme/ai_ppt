@@ -1,4 +1,9 @@
+import tempfile
+from pathlib import Path
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
 
 from blog.models import UserHistory, UserTemplate
@@ -74,6 +79,39 @@ class WebTemplateSmokeTests(TestCase):
         self.assertContains(response, 'name="old_password"', html=False)
         self.assertContains(response, 'name="new_password1"', html=False)
         self.assertContains(response, 'name="new_password2"', html=False)
+
+    def test_profile_renders_photo_upload_without_studio_summary(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="profile_image"', html=False)
+        self.assertNotContains(response, "Studio Summary")
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_profile_post_saves_uploaded_photo(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("profile"),
+            {
+                "id": self.user.id,
+                "username": "studio-user",
+                "email": "studio@example.com",
+                "profile_image": SimpleUploadedFile(
+                    "avatar.png",
+                    b"fake-image-bytes",
+                    content_type="image/png",
+                ),
+            },
+            follow=False,
+        )
+
+        self.assertRedirects(response, reverse("profile"), fetch_redirect_response=False)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.profile_image.name.endswith("avatar.png"))
+        self.assertTrue(Path(self.user.profile_image.path).exists())
 
     def test_result_renders_editor_shell_from_session_payload(self):
         session = self.client.session

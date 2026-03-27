@@ -15,6 +15,7 @@ from django.db import models
 
 class CustomUser(AbstractUser):
     nickname = models.CharField(max_length=50, unique=True)
+    profile_image = models.FileField(upload_to="profile-images/", blank=True)
 
     groups = models.ManyToManyField(
         "auth.Group",

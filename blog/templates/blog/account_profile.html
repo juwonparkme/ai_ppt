@@ -19,30 +19,50 @@
     </header>
 
     <div class="space-y-8">
-        <section class="relative overflow-hidden rounded-[28px] border border-outline-variant/10 bg-surface-container-lowest p-8 shadow-soft">
+        <section class="relative overflow-hidden rounded-[28px] border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-soft md:p-8">
             <div class="absolute right-0 top-0 h-64 w-64 rounded-full bg-primary/5 blur-3xl"></div>
-            <form class="relative z-10" method="post">
+            <form class="relative z-10" enctype="multipart/form-data" method="post">
                 {% csrf_token %}
                 {{ form.id }}
                 <div class="mb-8 flex flex-col gap-8 md:flex-row">
                     <div class="flex flex-col items-center gap-4">
-                        <img alt="기본 프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" src="{% static 'css/img/default_profile_user.png' %}" />
+                        {% if user.profile_image %}
+                            <img alt="프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" src="{{ user.profile_image.url }}" />
+                        {% else %}
+                            <img alt="기본 프로필 이미지" class="h-32 w-32 rounded-[28px] object-cover ring-4 ring-primary-container/20" src="{% static 'css/img/default_profile_user.png' %}" />
+                        {% endif %}
                         <span class="text-[10px] font-bold uppercase tracking-[0.26em] text-on-surface-variant">Profile Photo</span>
+                        <label class="inline-flex cursor-pointer items-center justify-center rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm font-semibold text-primary transition hover:bg-surface-container-high" for="id_profile_image">
+                            사진 선택
+                        </label>
+                        <input accept=".png,.jpg,.jpeg,.webp,.gif,image/*" class="hidden" id="id_profile_image" name="profile_image" type="file" />
+                        <p class="text-center text-xs leading-5 text-on-surface-variant">PNG, JPG, WEBP, GIF · 최대 10MB</p>
+                        {% if form.profile_image.errors %}
+                            <div class="space-y-1 text-center">
+                                {% for error in form.profile_image.errors %}
+                                    <p class="text-xs font-semibold text-error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="grid flex-1 gap-6 md:grid-cols-2">
                         <div class="space-y-2">
                             <label class="ml-1 text-xs font-semibold text-on-surface-variant" for="id_username">Username</label>
                             <input class="w-full rounded-2xl border-none bg-surface-container-low p-4 font-medium text-on-surface focus:ring-2 focus:ring-primary-fixed/30" id="id_username" name="username" type="text" value="{{ form.username.value|default:user.username }}" />
+                            {% if form.username.errors %}
+                                {% for error in form.username.errors %}
+                                    <p class="text-xs font-semibold text-error">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
                         </div>
                         <div class="space-y-2">
                             <label class="ml-1 text-xs font-semibold text-on-surface-variant" for="id_email">Email Address</label>
                             <input class="w-full rounded-2xl border-none bg-surface-container-low p-4 font-medium text-on-surface focus:ring-2 focus:ring-primary-fixed/30" id="id_email" name="email" type="email" value="{{ form.email.value|default:user.email }}" />
-                        </div>
-                        <div class="space-y-2 md:col-span-2">
-                            <label class="ml-1 text-xs font-semibold text-on-surface-variant">Studio Summary</label>
-                            <div class="rounded-2xl bg-surface-container-low p-4 text-sm leading-7 text-on-surface-variant">
-                                최근 작업 {{ history_entries|length }}건. 계정명과 이메일만 수정 가능하도록 현재 프로젝트 폼에 맞춰 연결했습니다.
-                            </div>
+                            {% if form.email.errors %}
+                                {% for error in form.email.errors %}
+                                    <p class="text-xs font-semibold text-error">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>

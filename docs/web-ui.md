@@ -50,6 +50,9 @@
 - 비밀번호 변경
   - 이전 잘못된 이메일 폼 제거
   - 실제 `old_password/new_password1/new_password2` 필드 사용
+- 프로필 화면
+  - `username`, `email`, `profile_image` 수정 가능
+  - 업로드 이미지는 `tmp/media/profile-images/` 저장
 
 ## Persistence
 

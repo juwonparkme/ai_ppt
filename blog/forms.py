@@ -1,10 +1,12 @@
+from pathlib import Path
+
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from django.forms import TextInput, EmailInput, NumberInput, PasswordInput
-from .models import CustomUser, UserTemplate
+from django.contrib.auth.forms import PasswordChangeForm  # 비밀번호 변경
 from django.contrib.auth.forms import UserChangeForm
-from django.contrib.auth.forms import PasswordChangeForm #비밀번호 변경
-from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
+from django.forms import EmailInput, PasswordInput, TextInput
+
+from .models import CustomUser, UserTemplate
 
 
 class LoginForm(forms.Form):
@@ -43,13 +45,29 @@ class SignUpForm(UserCreationForm):
 ### 🔹 회원 정보 수정 폼
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
-        model = User
-        fields = ['id','username', 'email']  # 원하는 필드만 수정 가능
+        model = CustomUser
+        fields = ['id', 'username', 'email', 'profile_image']
         widgets = {
             'username': TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'id': forms.HiddenInput(),
+            'profile_image': forms.FileInput(attrs={'accept': '.png,.jpg,.jpeg,.webp,.gif,image/*'}),
         }
+
+    def clean_profile_image(self):
+        uploaded = self.cleaned_data.get("profile_image")
+        if not uploaded:
+            return uploaded
+
+        extension = Path(uploaded.name).suffix.lower()
+        allowed_extensions = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+        if extension not in allowed_extensions:
+            raise forms.ValidationError("PNG, JPG, WEBP, GIF 파일만 업로드할 수 있습니다.")
+
+        if uploaded.size > 10 * 1024 * 1024:
+            raise forms.ValidationError("프로필 이미지는 10MB 이하만 업로드할 수 있습니다.")
+
+        return uploaded
 
 
 
