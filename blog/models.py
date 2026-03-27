@@ -60,6 +60,10 @@ class UserTemplate(models.Model):
         ("modern-a", "Template 1"),
         ("modern-b", "Template 2"),
     ]
+    RENDERER_LABEL_BY_KEY = {
+        "modern-a": "design_tem1",
+        "modern-b": "design_tem2",
+    }
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
@@ -73,3 +77,7 @@ class UserTemplate(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.name}"
+
+    @property
+    def renderer_label(self):
+        return self.RENDERER_LABEL_BY_KEY.get(self.renderer_key, self.renderer_key)

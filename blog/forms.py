@@ -142,7 +142,10 @@ class CustomTemplateUploadForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["renderer_key"].label = "기반 렌더 템플릿"
+        self.fields["renderer_key"].label = "참고 디자인 템플릿"
+        self.fields["renderer_key"].choices = [
+            (key, label) for key, label in UserTemplate.RENDERER_LABEL_BY_KEY.items()
+        ]
         self.fields["source_pptx"].widget.attrs.update(
             {
                 "class": "block w-full rounded-[22px] border border-dashed border-outline-variant/25 bg-surface-container-low px-5 py-4 text-sm font-semibold text-on-surface file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-xs file:font-bold file:text-white hover:file:opacity-90",

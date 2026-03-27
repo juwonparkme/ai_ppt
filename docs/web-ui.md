@@ -43,7 +43,7 @@
   - `GET/POST /templates/`
   - 사용자가 `.pptx`, `.pdf` 업로드 가능
   - 업로드 파일은 `tmp/user-templates/<user-id>/` 저장
-  - 각 업로드 항목은 `modern-a` 또는 `modern-b` 기반 렌더 템플릿에 연결
+  - 각 업로드 항목은 사용자가 입력한 템플릿 이름으로 별도 추가되고, `design_tem1` 또는 `design_tem2` 참고 디자인에 연결
 - 결과 화면
   - 세션 `last_result` 기준으로 편집기 셸 렌더
   - `result/history/<id>/` 로 저장된 결과 payload 재열기 지원

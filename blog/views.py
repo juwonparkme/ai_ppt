@@ -66,7 +66,7 @@ CUSTOM_TEMPLATE_SOURCE_PREFIX = "user-template-"
 BUILT_IN_TEMPLATE_CARDS = [
     {
         "source_id": "1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50",
-        "eyebrow": "Template 1",
+        "eyebrow": "design_tem1",
         "title": "design_tem1",
         "description": "에디토리얼 톤. 강한 대비, 큰 메시지, 발표용 헤드라인.",
         "preview_static_path": "css/img/design_tem1_preview.png",
@@ -74,7 +74,7 @@ BUILT_IN_TEMPLATE_CARDS = [
     },
     {
         "source_id": "19OAsGTO9QKHR-GQ-Fw_uc1JrYuC8NC58pj711l2ByD4",
-        "eyebrow": "Template 2",
+        "eyebrow": "design_tem2",
         "title": "design_tem2",
         "description": "클린 블루 톤. 리포트형 구성과 안정적인 여백.",
         "preview_static_path": "css/img/design_tem2_preview.png",
@@ -212,7 +212,7 @@ def build_prompt_template_cards(user):
                     "source_id": build_custom_template_source_id(template.id),
                     "eyebrow": "Custom",
                     "title": template.name,
-                    "description": f"{template.get_renderer_key_display()} 기반 · {template.original_filename}",
+                    "description": f"{template.renderer_label} 기반 · {template.original_filename}",
                     "preview_url": preview_image_for_renderer(template.renderer_key),
                     "is_custom": True,
                 }

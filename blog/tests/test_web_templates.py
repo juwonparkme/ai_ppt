@@ -60,6 +60,7 @@ class WebTemplateSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "My Brand Template")
         self.assertContains(response, "brand-template.pptx")
+        self.assertContains(response, "design_tem2")
 
     def test_template_library_renders_upload_form(self):
         self.client.force_login(self.user)
@@ -68,6 +69,9 @@ class WebTemplateSmokeTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "내 PPT 템플릿 추가")
+        self.assertContains(response, "참고 디자인 템플릿")
+        self.assertContains(response, "design_tem1")
+        self.assertContains(response, "design_tem2")
         self.assertContains(response, 'name="source_pptx"', html=False)
 
     def test_password_change_renders_actual_password_fields(self):
