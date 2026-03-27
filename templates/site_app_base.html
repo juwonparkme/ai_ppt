@@ -2,10 +2,30 @@
 
 {% block body %}
     {% include "blog/includes/app_header.html" %}
+    {% with route=request.resolver_match.url_name %}
+        <nav class="fixed inset-x-0 top-16 z-40 flex items-center gap-2 overflow-x-auto border-b border-white/60 bg-surface-container-lowest/90 px-4 py-3 backdrop-blur-xl md:hidden">
+            <a class="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] {% if route == 'home' or route == 'sign_in' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}bg-surface-container-low text-on-surface-variant{% endif %}" href="{% url 'home' %}">
+                <span class="material-symbols-outlined text-sm">dashboard</span>
+                대시보드
+            </a>
+            <a class="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] {% if route == 'prompt' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}bg-surface-container-low text-on-surface-variant{% endif %}" href="{% url 'prompt' %}">
+                <span class="material-symbols-outlined text-sm">auto_awesome</span>
+                워크플로우
+            </a>
+            <a class="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] {% if route == 'template_library' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}bg-surface-container-low text-on-surface-variant{% endif %}" href="{% url 'template_library' %}">
+                <span class="material-symbols-outlined text-sm">collections_bookmark</span>
+                템플릿
+            </a>
+            <a class="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] {% if route == 'profile' or route == 'password_change' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}bg-surface-container-low text-on-surface-variant{% endif %}" href="{% url 'profile' %}">
+                <span class="material-symbols-outlined text-sm">folder_open</span>
+                스튜디오
+            </a>
+        </nav>
+    {% endwith %}
     {% block sidebar %}
         {% include "blog/includes/app_sidebar.html" %}
     {% endblock %}
-    <main class="{% block main_class %}relative min-h-screen pt-16 md:ml-64{% endblock %}">
+    <main class="{% block main_class %}relative min-h-screen pt-[7.5rem] md:ml-64 md:pt-16{% endblock %}">
         {% block app_content %}{% endblock %}
     </main>
 {% endblock %}
