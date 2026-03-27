@@ -16,7 +16,8 @@ document.addEventListener("DOMContentLoaded", function () {
             activeObjectUrl = null;
         }
         imagePreview.src = defaultSrc;
-        fileNameLabel.textContent = "선택 즉시 미리보기 반영";
+        fileNameLabel.textContent = "";
+        fileNameLabel.classList.add("hidden");
     }
 
     imageInput.addEventListener("change", function () {
@@ -34,6 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
         activeObjectUrl = URL.createObjectURL(selectedFile);
         imagePreview.src = activeObjectUrl;
         fileNameLabel.textContent = selectedFile.name;
+        fileNameLabel.classList.remove("hidden");
     });
 
     window.addEventListener("beforeunload", function () {
@@ -41,4 +43,6 @@ document.addEventListener("DOMContentLoaded", function () {
             URL.revokeObjectURL(activeObjectUrl);
         }
     });
+
+    restoreDefaultPreview();
 });
