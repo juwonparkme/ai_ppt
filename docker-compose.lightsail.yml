@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+    env_file:
+      - ${LIGHTSAIL_APP_ENV_FILE:-./deploy/lightsail/app.env}
+    restart: unless-stopped
+    expose:
+      - "8000"
+    volumes:
+      - app_data:/data
+      - ./deploy/lightsail/secrets:/secrets:ro
+    environment:
+      DJANGO_STATIC_ROOT: /data/staticfiles
+      DJANGO_MEDIA_ROOT: /data/media
+      DJANGO_DB_NAME: /data/db.sqlite3
+      PPT_RENDER_OUTPUT_DIR: /data/rendered-presentations
+      USER_TEMPLATE_STORAGE_DIR: /data/user-templates
+      GOOGLE_CLIENT_SECRET_FILE: /secrets/client_secret.json
+      GOOGLE_SERVICE_ACCOUNT_FILE: /secrets/credentials.json
+      GOOGLE_TOKEN_FILE: /secrets/token.json
+
+  web:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/lightsail/Caddyfile:/etc/caddy/Caddyfile:ro
+      - app_data:/data:ro
+
+volumes:
+  app_data:

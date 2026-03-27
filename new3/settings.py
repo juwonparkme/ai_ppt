@@ -48,6 +48,7 @@ DEBUG = env_bool("DJANGO_DEBUG", True)
 
 #ALLOWED_HOSTS = []
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["127.0.0.1", "localhost"])
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", [])
 
 INSTALLED_APPS = [
     "django.contrib.admin", # admin 추가
@@ -139,8 +140,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [("ppt-assets", BASE_DIR / "ppt-renderer" / "assets")]
+STATIC_ROOT = Path(os.getenv("DJANGO_STATIC_ROOT", str(BASE_DIR / "tmp" / "staticfiles")))
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "tmp" / "media"
+MEDIA_ROOT = Path(os.getenv("DJANGO_MEDIA_ROOT", str(BASE_DIR / "tmp" / "media")))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -178,6 +180,11 @@ PPT_RENDER_OUTPUT_DIR = os.getenv(
 USER_TEMPLATE_STORAGE_DIR = os.getenv(
     "USER_TEMPLATE_STORAGE_DIR", str(BASE_DIR / "tmp" / "user-templates")
 )
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if env_bool("DJANGO_TRUST_X_FORWARDED_PROTO", False) else None
+USE_X_FORWARDED_HOST = env_bool("DJANGO_USE_X_FORWARDED_HOST", False)
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)
+SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", False)
+CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", False)
 
 # 세션과 만료시 로그아웃
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'

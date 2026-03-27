@@ -35,6 +35,12 @@ class WebTemplateSmokeTests(TestCase):
         self.assertContains(response, "Q1 Strategy Deck")
         self.assertContains(response, "최근 프로젝트")
 
+    def test_healthz_returns_ok_payload(self):
+        response = self.client.get(reverse("healthz"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"status": "ok"})
+
     def test_prompt_get_prefills_topic_from_query_string(self):
         self.client.force_login(self.user)
 

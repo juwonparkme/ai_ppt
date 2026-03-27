@@ -230,6 +230,10 @@ def build_prompt_context(request, *, selected_template_source_id=None):
     }
 
 
+def healthz(request):
+    return JsonResponse({"status": "ok"})
+
+
 def is_pptxgenjs_backend():
     return settings.PPT_RENDER_BACKEND == "pptxgenjs"
 

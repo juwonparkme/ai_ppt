@@ -6,3 +6,6 @@ db.sqlite3
 ppt-renderer/node_modules/
 ppt-renderer/*.pptx
 tmp/
+deploy/lightsail/app.env
+deploy/lightsail/secrets/*
+!deploy/lightsail/secrets/.gitkeep

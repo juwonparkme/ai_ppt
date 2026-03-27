@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.venv/
+.git/
+__pycache__/
+*.pyc
+db.sqlite3
+tmp/
+deploy/lightsail/app.env
+deploy/lightsail/secrets/
+ppt-renderer/node_modules/
