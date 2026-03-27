@@ -41,7 +41,7 @@
   - 템플릿 1개 선택 후 POST
 - 템플릿 라이브러리
   - `GET/POST /templates/`
-  - 사용자가 `.pptx` 업로드 가능
+  - 사용자가 `.pptx`, `.pdf` 업로드 가능
   - 업로드 파일은 `tmp/user-templates/<user-id>/` 저장
   - 각 업로드 항목은 `modern-a` 또는 `modern-b` 기반 렌더 템플릿에 연결
 - 결과 화면

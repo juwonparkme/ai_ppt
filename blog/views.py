@@ -166,7 +166,10 @@ def sanitize_upload_filename(filename):
     original_name = Path(filename).name
     stem = re.sub(r"[^\w.-]", "_", Path(original_name).stem, flags=re.UNICODE).strip("._")
     stem = re.sub(r"_+", "_", stem)
-    return f"{stem or 'template'}.pptx"
+    suffix = Path(original_name).suffix.lower()
+    if suffix not in {".pptx", ".pdf"}:
+        suffix = ".pptx"
+    return f"{stem or 'template'}{suffix}"
 
 
 def save_uploaded_user_template_file(user, uploaded_file):
@@ -174,9 +177,10 @@ def save_uploaded_user_template_file(user, uploaded_file):
     root_dir.mkdir(parents=True, exist_ok=True)
     base_name = sanitize_upload_filename(uploaded_file.name)
     stem = Path(base_name).stem
+    suffix = Path(base_name).suffix or ".pptx"
     candidate = root_dir / base_name
     while candidate.exists():
-        candidate = root_dir / f"{stem}_{random.randint(1000, 9999)}.pptx"
+        candidate = root_dir / f"{stem}_{random.randint(1000, 9999)}{suffix}"
     with candidate.open("wb+") as destination:
         for chunk in uploaded_file.chunks():
             destination.write(chunk)

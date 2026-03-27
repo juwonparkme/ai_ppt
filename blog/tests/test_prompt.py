@@ -274,7 +274,7 @@ class PromptViewTests(TestCase):
         history = UserHistory.objects.get(user=self.user, ppt_title="Disk_Deck")
         self.assertTrue(Path(history.file_path).exists())
 
-    def test_template_library_upload_creates_user_template(self):
+    def test_template_library_upload_creates_user_template_from_pdf(self):
         temp_dir = Path(tempfile.mkdtemp(prefix="ppt-user-template-"))
 
         with override_settings(USER_TEMPLATE_STORAGE_DIR=str(temp_dir)):
@@ -285,9 +285,9 @@ class PromptViewTests(TestCase):
                     "name": "Custom Pitch Deck",
                     "renderer_key": "modern-b",
                     "source_pptx": SimpleUploadedFile(
-                        "custom-pitch.pptx",
-                        b"pptx-template",
-                        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "custom-pitch.pdf",
+                        b"%PDF-1.4 template",
+                        content_type="application/pdf",
                     ),
                 },
                 HTTP_HOST="127.0.0.1",
@@ -300,6 +300,8 @@ class PromptViewTests(TestCase):
             fetch_redirect_response=False,
         )
         self.assertTrue(Path(template.source_pptx_path).exists())
+        self.assertTrue(template.source_pptx_path.endswith(".pdf"))
+        self.assertEqual(template.original_filename, "custom-pitch.pdf")
         self.assertEqual(template.renderer_key, "modern-b")
 
     @override_settings(PPT_RENDER_BACKEND="pptxgenjs")

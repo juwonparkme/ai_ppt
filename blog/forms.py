@@ -146,7 +146,7 @@ class CustomTemplateUploadForm(forms.ModelForm):
         self.fields["source_pptx"].widget.attrs.update(
             {
                 "class": "block w-full rounded-[22px] border border-dashed border-outline-variant/25 bg-surface-container-low px-5 py-4 text-sm font-semibold text-on-surface file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-xs file:font-bold file:text-white hover:file:opacity-90",
-                "accept": ".pptx",
+                "accept": ".pptx,.pdf,application/pdf",
             }
         )
 
@@ -159,9 +159,9 @@ class CustomTemplateUploadForm(forms.ModelForm):
     def clean_source_pptx(self):
         uploaded = self.cleaned_data.get("source_pptx")
         if not uploaded:
-            raise forms.ValidationError("PPT 템플릿 파일을 업로드해 주세요.")
-        if not uploaded.name.lower().endswith(".pptx"):
-            raise forms.ValidationError(".pptx 파일만 업로드할 수 있습니다.")
+            raise forms.ValidationError("PPTX 또는 PDF 템플릿 파일을 업로드해 주세요.")
+        if not uploaded.name.lower().endswith((".pptx", ".pdf")):
+            raise forms.ValidationError(".pptx 또는 .pdf 파일만 업로드할 수 있습니다.")
         if uploaded.size > 30 * 1024 * 1024:
             raise forms.ValidationError("30MB 이하 파일만 업로드할 수 있습니다.")
         return uploaded
