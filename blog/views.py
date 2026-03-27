@@ -494,7 +494,7 @@ def user_update(request):
         form = UserUpdateForm(instance=request.user) #현재 로그인한 사용자의 정보 가져오기
     return render(request, 'blog/account_settings.html', {'form': form})
 
-@login_required
+@login_required(login_url='/login/')
 def profile_view(request):
     user_id=request.user.id
     user_histories = UserHistory.objects.filter(user_id=user_id).order_by('-create_date')
@@ -513,6 +513,7 @@ def profile_view(request):
     return render(request, 'blog/account_profile.html', {'form': form, 'history_entries': history_entries})
 
 
+@login_required(login_url='/login/')
 def delete_user_history(request):
     if request.method == "POST":
         selected_ids = request.POST.getlist('presentation_id')  # 선택된 체크박스 값 가져오기
@@ -524,7 +525,7 @@ def delete_user_history(request):
 
 
 ## 🔹 비밀번호 변경 (Password Change)
-@login_required
+@login_required(login_url='/login/')
 def password_change(request):
     if request.method == "POST":
         form = CustomPasswordChangeForm(request.user, request.POST)

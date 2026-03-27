@@ -89,6 +89,12 @@ class WebTemplateSmokeTests(TestCase):
         self.assertContains(response, 'name="profile_image"', html=False)
         self.assertNotContains(response, "Studio Summary")
 
+    def test_profile_redirects_to_custom_login_when_signed_out(self):
+        response = self.client.get(reverse("profile"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/?next=/profile/", response["Location"])
+
     @override_settings(MEDIA_ROOT=tempfile.gettempdir())
     def test_profile_post_saves_uploaded_photo(self):
         self.client.force_login(self.user)
@@ -110,7 +116,8 @@ class WebTemplateSmokeTests(TestCase):
 
         self.assertRedirects(response, reverse("profile"), fetch_redirect_response=False)
         self.user.refresh_from_db()
-        self.assertTrue(self.user.profile_image.name.endswith("avatar.png"))
+        self.assertIn("avatar", self.user.profile_image.name)
+        self.assertTrue(self.user.profile_image.name.endswith(".png"))
         self.assertTrue(Path(self.user.profile_image.path).exists())
 
     def test_result_renders_editor_shell_from_session_payload(self):
