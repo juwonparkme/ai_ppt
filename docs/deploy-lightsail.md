@@ -18,6 +18,7 @@
 - `deploy/lightsail/deploy.sh`
 - `deploy/lightsail/Caddyfile`
 - `deploy/lightsail/app.env.example`
+- `docs/docker-beginner-checklist.md`
 
 ## Required Secrets
 
@@ -33,7 +34,7 @@ Google 연동을 쓰지 않으면 JSON 파일은 비워두지 말고 해당 기�
 
 ```bash
 cp deploy/lightsail/app.env.example deploy/lightsail/app.env
-docker compose -f docker-compose.lightsail.yml up -d --build
+env -i PATH="$PATH" HOME="$HOME" LIGHTSAIL_APP_ENV_FILE=./deploy/lightsail/app.env docker compose --env-file /dev/null -f docker-compose.lightsail.yml up -d --build
 curl -fsS http://127.0.0.1/healthz/
 ```
 
@@ -52,3 +53,4 @@ curl -fsS http://127.0.0.1/healthz/
 - 운영에서는 `DJANGO_DEBUG=false`
 - HTTPS는 현재 미포함. Lightsail static IP + 도메인 연결 뒤 reverse proxy/TLS 추가 권장
 - 앱 헬스체크 엔드포인트: `/healthz/`
+- 초보자용 복붙 가이드는 [docs/docker-beginner-checklist.md](/Users/bagjuwon/Projects/ai_ppt/docs/docker-beginner-checklist.md)

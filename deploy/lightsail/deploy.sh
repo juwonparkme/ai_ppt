@@ -13,7 +13,13 @@ fi
 
 mkdir -p deploy/lightsail/secrets
 
-LIGHTSAIL_APP_ENV_FILE="$APP_ENV_FILE" docker compose -f docker-compose.lightsail.yml up -d --build
+env -i PATH="$PATH" HOME="$HOME" \
+  LIGHTSAIL_APP_ENV_FILE="$APP_ENV_FILE" \
+  docker compose --env-file /dev/null -f docker-compose.lightsail.yml up -d --build
 
 echo "배포 완료. 헬스체크:"
 echo "  curl -fsS http://127.0.0.1/healthz/"
+echo "로그 보기:"
+echo "  docker compose -f docker-compose.lightsail.yml logs -f"
+echo "중지:"
+echo "  docker compose -f docker-compose.lightsail.yml down"

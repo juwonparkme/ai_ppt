@@ -29,7 +29,7 @@ services:
       - "80:80"
     volumes:
       - ./deploy/lightsail/Caddyfile:/etc/caddy/Caddyfile:ro
-      - app_data:/data:ro
+      - app_data:/data
 
 volumes:
   app_data:
