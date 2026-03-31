@@ -22,6 +22,8 @@ services:
 
   web:
     image: caddy:2.9-alpine
+    env_file:
+      - ${LIGHTSAIL_APP_ENV_FILE:-./deploy/lightsail/app.env}
     restart: unless-stopped
     depends_on:
       - app
