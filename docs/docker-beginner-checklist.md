@@ -10,13 +10,15 @@
   - Gunicorn
   - Node 기반 `ppt-renderer`
 - `web`
-  - Caddy
+  - Nginx
   - 브라우저 요청을 받아 `app` 으로 전달
+- `certbot`
+  - Let's Encrypt 인증서 발급/갱신
 
 즉 흐름은 아래다.
 
 ```text
-브라우저 -> Caddy(web) -> Django(app)
+브라우저 -> Nginx(web) -> Django(app)
 ```
 
 ## 서버 접속 후 순서
@@ -47,6 +49,7 @@ nano deploy/lightsail/app.env
 - `DJANGO_ALLOWED_HOSTS`
 - `DJANGO_CSRF_TRUSTED_ORIGINS`
 - `OPENAI_API_KEY`
+- HTTPS를 쓸 거면 `NGINX_SERVER_NAME`, `LETSENCRYPT_EMAIL`
 - 메일 기능을 쓸 거면 `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`
 
 예시:
@@ -56,11 +59,15 @@ DJANGO_SECRET_KEY=replace-with-a-long-random-string
 DJANGO_DEBUG=false
 DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,ppt.example.com
 DJANGO_CSRF_TRUSTED_ORIGINS=https://ppt.example.com
-DJANGO_TRUST_X_FORWARDED_PROTO=false
-DJANGO_USE_X_FORWARDED_HOST=false
-DJANGO_SECURE_SSL_REDIRECT=false
-DJANGO_SESSION_COOKIE_SECURE=false
-DJANGO_CSRF_COOKIE_SECURE=false
+DJANGO_TRUST_X_FORWARDED_PROTO=true
+DJANGO_USE_X_FORWARDED_HOST=true
+DJANGO_SECURE_SSL_REDIRECT=true
+DJANGO_SESSION_COOKIE_SECURE=true
+DJANGO_CSRF_COOKIE_SECURE=true
+NGINX_SERVER_NAME=ppt.example.com
+NGINX_CLIENT_MAX_BODY_SIZE=50m
+LETSENCRYPT_EMAIL=you@example.com
+LETSENCRYPT_STAGING=false
 
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
@@ -186,13 +193,14 @@ docker compose -f docker-compose.lightsail.yml ps
 ## 헷갈리기 쉬운 점
 
 - Docker 안에서 Django가 직접 80포트를 받는 게 아님
-- 바깥 80포트는 Caddy가 받음
+- 바깥 80/443 포트는 Nginx가 받음
 - 실제 Django는 내부에서 `8000` 포트 사용
 - 데이터는 컨테이너 안에만 있지 않고 Docker volume `/data` 에 남음
 - `deploy.sh` 는 프로젝트 루트 `.env` 를 읽지 않게 처리돼 있어서 Compose 경고를 최대한 줄인다
+- HTTPS는 `deploy.sh` 가 HTTP로 먼저 띄우고, certbot 발급 성공 후 HTTPS Nginx 설정으로 바꿔 준다
 
 ## 지금 기준 한계
 
-- HTTPS 자동화는 아직 안 붙음
-- 지금은 HTTP 기준
-- TLS는 도메인/프록시 구조 확정 후 다음 단계로 붙이는 게 맞다
+- Let's Encrypt 발급은 도메인 DNS 와 80/443 포트가 열려 있어야 성공
+- 방화벽 문제면 `tls-alpn-01` 이 실패하고 `http-01` 로 넘어갈 수 있음
+- 운영 전에는 반드시 `curl -I https://도메인` 으로 인증서 발급 여부 확인

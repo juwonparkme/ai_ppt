@@ -7,7 +7,8 @@
 - Django 5 + Gunicorn
 - Node/NPM 기반 `ppt-renderer`
 - SQLite, 업로드 파일, 렌더 결과물은 Docker volume `/data` 에 저장
-- Caddy가 `:80` 에서 reverse proxy + `/static/`, `/media/` 서빙
+- Nginx가 reverse proxy + `/static/`, `/media/` 서빙
+- `certbot` 이 Let's Encrypt 인증서 발급/갱신 담당
 
 ## Added Files
 
@@ -16,7 +17,9 @@
 - `docker-compose.lightsail.yml`
 - `deploy/lightsail/docker-entrypoint.sh`
 - `deploy/lightsail/deploy.sh`
-- `deploy/lightsail/Caddyfile`
+- `deploy/lightsail/nginx.http.conf.template`
+- `deploy/lightsail/nginx.https.conf.template`
+- `deploy/lightsail/render-nginx-config.sh`
 - `deploy/lightsail/app.env.example`
 - `docs/docker-beginner-checklist.md`
 
@@ -51,6 +54,8 @@ curl -fsS http://127.0.0.1/healthz/
 ## Notes
 
 - 운영에서는 `DJANGO_DEBUG=false`
-- HTTPS는 현재 미포함. Lightsail static IP + 도메인 연결 뒤 reverse proxy/TLS 추가 권장
+- `NGINX_SERVER_NAME` 와 `LETSENCRYPT_EMAIL` 을 채우면 `deploy.sh` 가 HTTP 구성으로 먼저 띄운 뒤 certbot 발급 후 HTTPS 구성으로 전환
+- `LETSENCRYPT_STAGING=true` 면 스테이징 CA 로 먼저 검증 가능
+- Lightsail networking 에서 `80`, `443`, `22` 포트를 열어야 인증서 발급이 된다
 - 앱 헬스체크 엔드포인트: `/healthz/`
 - 초보자용 복붙 가이드는 [docs/docker-beginner-checklist.md](/Users/bagjuwon/Projects/ai_ppt/docs/docker-beginner-checklist.md)
