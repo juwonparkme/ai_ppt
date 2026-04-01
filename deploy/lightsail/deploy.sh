@@ -46,7 +46,7 @@ if [ "$NGINX_SERVER_NAME" != "_" ] && [ -n "$LETSENCRYPT_EMAIL" ] && [ ! -f "$CE
   fi
 
   env -i PATH="$PATH" HOME="$HOME" LIGHTSAIL_APP_ENV_FILE="$APP_ENV_FILE" \
-    docker compose --env-file /dev/null -f docker-compose.lightsail.yml run --rm certbot sh -lc "certbot certonly $CERTBOT_ARGS"
+    docker compose --env-file /dev/null -f docker-compose.lightsail.yml run --rm certbot -lc "certbot certonly $CERTBOT_ARGS"
 
   if [ -f "$CERT_PATH" ]; then
     ./deploy/lightsail/render-nginx-config.sh https
