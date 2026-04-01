@@ -8,4 +8,6 @@ db.sqlite3
 tmp/
 deploy/lightsail/app.env
 deploy/lightsail/secrets/
+deploy/lightsail/state/
+deploy/lightsail/nginx.conf
 ppt-renderer/node_modules/
