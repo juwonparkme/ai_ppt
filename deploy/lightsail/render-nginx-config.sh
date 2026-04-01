@@ -4,9 +4,20 @@ set -eu
 MODE="${1:-http}"
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 OUTPUT_PATH="$ROOT_DIR/deploy/lightsail/nginx.conf"
+APP_ENV_FILE="${LIGHTSAIL_APP_ENV_FILE:-$ROOT_DIR/deploy/lightsail/app.env}"
 
-SERVER_NAME="${NGINX_SERVER_NAME:-_}"
-CLIENT_MAX_BODY_SIZE="${NGINX_CLIENT_MAX_BODY_SIZE:-50m}"
+read_env_value() {
+  key="$1"
+  if [ ! -f "$APP_ENV_FILE" ]; then
+    return 0
+  fi
+  sed -n "s/^${key}=//p" "$APP_ENV_FILE" | tail -n 1
+}
+
+SERVER_NAME="${NGINX_SERVER_NAME:-$(read_env_value NGINX_SERVER_NAME)}"
+SERVER_NAME="${SERVER_NAME:-_}"
+CLIENT_MAX_BODY_SIZE="${NGINX_CLIENT_MAX_BODY_SIZE:-$(read_env_value NGINX_CLIENT_MAX_BODY_SIZE)}"
+CLIENT_MAX_BODY_SIZE="${CLIENT_MAX_BODY_SIZE:-50m}"
 
 case "$MODE" in
   http)
