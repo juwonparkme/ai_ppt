@@ -32,6 +32,9 @@ curl: (7) Failed to connect to ppt.juwonpark.me port 443
 확인:
 
 ```bash
+# 127.0.0.1:80 으로 직접 붙어서 Nginx HTTP 응답 확인
+# Host 헤더를 실제 도메인으로 넣어 Django/Nginx 운영 경로 그대로 검사
+# 10초 안에 응답 없으면 자동 종료
 curl -v --max-time 10 -H "Host: ppt.juwonpark.me" http://127.0.0.1/healthz/
 ```
 
@@ -59,6 +62,8 @@ curl: (22) The requested URL returned error: 400
 확인:
 
 ```bash
+# Host 헤더를 실제 운영 도메인으로 강제로 넣어서
+# DJANGO_ALLOWED_HOSTS 에 걸리지 않는지 확인
 curl -H "Host: ppt.juwonpark.me" http://127.0.0.1/healthz/
 ```
 
@@ -176,6 +181,8 @@ LETSENCRYPT_STAGING=false
 ### 2. 인증서 발급 확인
 
 ```bash
+# root 권한으로 실제 발급된 인증서 파일/심볼릭 링크가 있는지 확인
+# ubuntu 계정으로는 letsencrypt live 디렉토리 접근이 막힐 수 있음
 sudo ls -la /opt/ai-ppt/deploy/lightsail/state/letsencrypt/live/ppt.juwonpark.me/
 ```
 
@@ -187,6 +194,8 @@ sudo ls -la /opt/ai-ppt/deploy/lightsail/state/letsencrypt/live/ppt.juwonpark.me
 ### 3. 최종 응답 확인
 
 ```bash
+# 외부 도메인으로 실제 HTTPS 응답 확인
+# 여기서 200/301/302 같은 정상 HTTP 응답이 오면 443 경로는 열린 상태
 curl -I https://ppt.juwonpark.me
 ```
 
@@ -202,16 +211,31 @@ server: nginx/1.27.5
 아래 네 줄이면 대부분 판정된다.
 
 ```bash
+# 현재 compose 기준 컨테이너가 살아 있는지 확인
+# app/web/certbot 이 Up 인지 먼저 봄
 docker compose -f docker-compose.lightsail.yml ps
+
+# Nginx(web) 최근 로그 200줄만 확인
+# 80/443 리슨, reverse proxy, 인증서 관련 에러 확인용
 docker compose -f docker-compose.lightsail.yml logs --tail=200 web
+
+# certbot 최근 로그 200줄만 확인
+# 인증서 발급/갱신 성공 여부와 ACME 에러 확인용
 docker compose -f docker-compose.lightsail.yml logs --tail=200 certbot
+
+# 외부에서 실제 HTTPS 접속이 되는지 최종 확인
 curl -I https://도메인
 ```
 
 추가 확인이 필요하면:
 
 ```bash
+# 현재 Nginx가 어떤 설정 파일로 떠 있는지 확인
+# listen 443 ssl, server_name, ssl_certificate 경로를 눈으로 검증
 cat /opt/ai-ppt/deploy/lightsail/nginx.conf
+
+# 실제 letsencrypt live 디렉토리에 인증서 파일이 존재하는지 확인
+# fullchain.pem / privkey.pem 이 있으면 발급은 된 상태
 sudo ls -la /opt/ai-ppt/deploy/lightsail/state/letsencrypt/live/도메인/
 ```
 
