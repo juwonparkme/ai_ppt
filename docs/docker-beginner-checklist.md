@@ -83,29 +83,7 @@ PPT_RENDER_BACKEND=pptxgenjs
 PPT_RENDERER_DIR=/app/ppt-renderer
 ```
 
-## 4. Google JSON 파일 넣기
-
-아래 경로에 넣는다.
-
-```bash
-mkdir -p deploy/lightsail/secrets
-```
-
-필요 파일:
-
-- `deploy/lightsail/secrets/client_secret.json`
-- `deploy/lightsail/secrets/credentials.json`
-- `deploy/lightsail/secrets/token.json`
-
-예시:
-
-```bash
-cp ~/client_secret.json deploy/lightsail/secrets/client_secret.json
-cp ~/credentials.json deploy/lightsail/secrets/credentials.json
-cp ~/token.json deploy/lightsail/secrets/token.json
-```
-
-## 5. Docker로 실행
+## 4. Docker로 실행
 
 ```bash
 ./deploy/lightsail/deploy.sh
@@ -123,7 +101,7 @@ docker compose -f docker-compose.lightsail.yml up -d --build
 - `up`: 컨테이너 실행
 - `-d`: 백그라운드 실행
 
-## 6. 정상 실행 확인
+## 5. 정상 실행 확인
 
 ```bash
 curl -fsS http://127.0.0.1/healthz/
@@ -135,7 +113,7 @@ curl -fsS http://127.0.0.1/healthz/
 {"status": "ok"}
 ```
 
-## 7. 브라우저 확인
+## 6. 브라우저 확인
 
 도메인 연결 전이면:
 
@@ -183,8 +161,6 @@ docker compose -f docker-compose.lightsail.yml up -d --build
 cd /opt/ai-ppt
 cp deploy/lightsail/app.env.example deploy/lightsail/app.env
 nano deploy/lightsail/app.env
-mkdir -p deploy/lightsail/secrets
-# 여기로 json 3개 복사
 ./deploy/lightsail/deploy.sh
 curl -fsS http://127.0.0.1/healthz/
 docker compose -f docker-compose.lightsail.yml ps

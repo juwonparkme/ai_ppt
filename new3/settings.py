@@ -166,13 +166,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_FILENAME_MODEL = os.getenv("OPENAI_FILENAME_MODEL", "gpt-3.5-turbo-1106")
 OPENAI_PRESENTATION_MODEL = os.getenv("OPENAI_PRESENTATION_MODEL", "gpt-4-turbo")
 PPT_RENDER_BACKEND = os.getenv("PPT_RENDER_BACKEND", "pptxgenjs")
-GOOGLE_CLIENT_SECRET_FILE = os.getenv(
-    "GOOGLE_CLIENT_SECRET_FILE", str(BASE_DIR / "client_secret.json")
-)
-GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv(
-    "GOOGLE_SERVICE_ACCOUNT_FILE", str(BASE_DIR / "credentials.json")
-)
-GOOGLE_TOKEN_FILE = os.getenv("GOOGLE_TOKEN_FILE", str(BASE_DIR / "token.json"))
 PPT_RENDERER_DIR = os.getenv("PPT_RENDERER_DIR", str(BASE_DIR / "ppt-renderer"))
 PPT_RENDER_OUTPUT_DIR = os.getenv(
     "PPT_RENDER_OUTPUT_DIR", str(BASE_DIR / "tmp" / "rendered-presentations")

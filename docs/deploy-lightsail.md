@@ -27,11 +27,6 @@
 
 - `deploy/lightsail/app.env`
   - `deploy/lightsail/app.env.example` 복사 후 값 채우기
-- `deploy/lightsail/secrets/client_secret.json`
-- `deploy/lightsail/secrets/credentials.json`
-- `deploy/lightsail/secrets/token.json`
-
-Google 연동을 쓰지 않으면 JSON 파일은 비워두지 말고 해당 기능 비사용 기준으로만 운영.
 
 ## Local Smoke
 

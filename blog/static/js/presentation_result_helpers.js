@@ -62,11 +62,11 @@
     }
 
     function backendLabel(backend) {
-        return backend === "pptxgenjs" ? "PptxGenJS Renderer" : "Google Slides Legacy";
+        return "PptxGenJS Renderer";
     }
 
     function backendFooterLabel(backend) {
-        return backend === "pptxgenjs" ? "PptxGenJS" : "Google Slides";
+        return "PptxGenJS";
     }
 
     function escapeHtml(value) {

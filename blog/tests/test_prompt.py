@@ -2,7 +2,7 @@ import json
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -85,53 +85,6 @@ class PromptViewTests(TestCase):
             spec=build_slide_spec(source_topic, overview_text, detail_text, template=template),
         )
 
-    @override_settings(PPT_RENDER_BACKEND="legacy-google")
-    @patch("blog.views.create_slides", return_value="https://slides.example/presentation")
-    @patch("blog.views.split_slides")
-    @patch("blog.views.build_presentation_agent")
-    @patch("blog.views.random.randint", return_value=7)
-    @patch("blog.views.os.makedirs", side_effect=[FileExistsError, None])
-    def test_prompt_post_uses_suffix_title_after_name_collision(
-        self,
-        mock_makedirs,
-        mock_randint,
-        mock_build_presentation_agent,
-        mock_split_slides,
-        mock_create_slides,
-    ):
-        fake_agent = SimpleNamespace(
-            generate_filename=Mock(return_value="Generated Name"),
-            run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name", template="modern-b")),
-        )
-        mock_build_presentation_agent.return_value = fake_agent
-
-        self.client.force_login(self.user)
-        response = self.client.post(
-            reverse("prompt"),
-            {"presentation_id": "template-123", "user-input": "AI topic"},
-            HTTP_HOST="127.0.0.1",
-        )
-
-        self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
-        self.assertEqual(
-            mock_makedirs.call_args_list,
-            [call("Generated_Name"), call("Generated_Name_7")],
-        )
-        fake_agent.generate_filename.assert_called_once_with("AI topic")
-        fake_agent.run.assert_called_once_with("AI topic", output_title="Generated_Name", template="modern-a")
-        self.assertEqual(mock_split_slides.call_count, 2)
-        mock_create_slides.assert_called_once_with(
-            "1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50",
-            "Generated_Name_7",
-        )
-
-        history = UserHistory.objects.get(user=self.user)
-        self.assertEqual(history.ppt_title, "Generated_Name_7")
-        self.assertEqual(history.ppt_url, "https://slides.example/presentation")
-        self.assertEqual(history.backend, "legacy-google")
-        self.assertEqual(history.status, "completed")
-
-    @override_settings(PPT_RENDER_BACKEND="pptxgenjs")
     @patch("blog.views.reserve_render_output_dir", return_value=("Generated_Name", Path("/tmp/rendered/Generated_Name")))
     @patch("blog.views.render_presentation")
     @patch("blog.views.build_presentation_agent")
@@ -343,6 +296,13 @@ class PromptViewTests(TestCase):
         render_spec = mock_render_presentation.call_args.args[0]
         self.assertEqual(render_spec["template"], "modern-b")
 
+    def test_result_without_last_result_redirects_to_prompt(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("result"), HTTP_HOST="127.0.0.1")
+
+        self.assertRedirects(response, reverse("prompt"), fetch_redirect_response=False)
+
     def test_result_editor_save_updates_session_and_history_payload(self):
         history = UserHistory.objects.create(
             user=self.user,
@@ -427,11 +387,11 @@ class PromptViewTests(TestCase):
         history = UserHistory.objects.create(
             user=self.user,
             ppt_title="Generated Deck",
-            ppt_url="https://slides.example/deck",
-            backend="legacy-google",
+            ppt_url="",
+            backend="pptxgenjs",
             result_payload={
                 "title": "Edited Deck",
-                "download_url": "https://slides.example/deck",
+                "download_url": "",
                 "preview_items": [
                     {
                         "kind": "slide",
@@ -450,9 +410,9 @@ class PromptViewTests(TestCase):
                         "notes": "",
                     },
                 ],
-                "backend": "legacy-google",
+                "backend": "pptxgenjs",
                 "template": "modern-b",
-                "primary_action_label": "Google Slides 열기",
+                "primary_action_label": "다운로드",
             },
             status="completed",
         )
@@ -477,8 +437,8 @@ class PromptViewTests(TestCase):
                     "history_id": history.id,
                     "title": "Edited Deck",
                     "template": "modern-b",
-                    "backend": "legacy-google",
-                    "primary_action_label": "Google Slides 열기",
+                    "backend": "pptxgenjs",
+                    "primary_action_label": "다운로드",
                     "preview_items": history.result_payload["preview_items"],
                 }
             ),

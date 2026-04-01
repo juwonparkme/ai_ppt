@@ -9,16 +9,12 @@ services:
       - "8000"
     volumes:
       - app_data:/data
-      - ./deploy/lightsail/secrets:/secrets:ro
     environment:
       DJANGO_STATIC_ROOT: /data/staticfiles
       DJANGO_MEDIA_ROOT: /data/media
       DJANGO_DB_NAME: /data/db.sqlite3
       PPT_RENDER_OUTPUT_DIR: /data/rendered-presentations
       USER_TEMPLATE_STORAGE_DIR: /data/user-templates
-      GOOGLE_CLIENT_SECRET_FILE: /secrets/client_secret.json
-      GOOGLE_SERVICE_ACCOUNT_FILE: /secrets/credentials.json
-      GOOGLE_TOKEN_FILE: /secrets/token.json
 
   web:
     image: nginx:1.27-alpine

@@ -33,7 +33,6 @@ class CustomUser(AbstractUser):
 
 class UserHistory(models.Model):
     BACKEND_CHOICES = [
-        ("legacy-google", "Google Slides"),
         ("pptxgenjs", "PptxGenJS"),
     ]
     STATUS_CHOICES = [
@@ -44,7 +43,7 @@ class UserHistory(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     ppt_title = models.CharField(max_length=500)
     ppt_url = models.CharField(max_length=500)
-    backend = models.CharField(max_length=32, choices=BACKEND_CHOICES, default="legacy-google")
+    backend = models.CharField(max_length=32, choices=BACKEND_CHOICES, default="pptxgenjs")
     file_path = models.CharField(max_length=500, blank=True, default="")
     result_payload = models.JSONField(blank=True, default=dict)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="completed")
