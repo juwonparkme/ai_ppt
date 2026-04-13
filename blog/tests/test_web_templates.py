@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
@@ -67,6 +68,25 @@ class WebTemplateSmokeTests(TestCase):
         self.assertContains(response, "My Brand Template")
         self.assertContains(response, "brand-template.pptx")
         self.assertContains(response, "design_tem2")
+
+    @patch("blog.views.generate_user_template_preview")
+    def test_prompt_uses_uploaded_template_preview_route_when_preview_exists(self, mock_generate_preview):
+        template = UserTemplate.objects.create(
+            user=self.user,
+            name="Preview Template",
+            renderer_key="modern-a",
+            original_filename="preview-template.pptx",
+            source_pptx_path="/tmp/preview-template.pptx",
+        )
+        preview_file = Path(tempfile.gettempdir()) / "preview-template.preview.png"
+        preview_file.write_bytes(b"png")
+        mock_generate_preview.return_value = preview_file
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("prompt"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("user_template_preview", args=[template.id]))
 
     def test_template_library_renders_upload_form(self):
         self.client.force_login(self.user)

@@ -1,6 +1,9 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
 from urllib.parse import quote
+import mimetypes
+import subprocess
+import shutil
 from django.shortcuts import get_object_or_404, redirect, render
 from .forms import (
     CustomPasswordChangeForm,
@@ -165,6 +168,54 @@ def save_uploaded_user_template_file(user, uploaded_file):
     return str(candidate)
 
 
+def user_template_preview_path(source_path):
+    path = Path(source_path)
+    return path.parent / f"{path.stem}.preview.png"
+
+
+def generate_user_template_preview(source_path):
+    source_path = Path(source_path)
+    if not source_path.exists():
+        return None
+
+    preview_path = user_template_preview_path(source_path)
+    if preview_path.exists():
+        return preview_path
+
+    if not shutil.which("qlmanage"):
+        return None
+
+    preview_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_dir = preview_path.parent / f".preview-{source_path.stem}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        subprocess.run(
+            ["qlmanage", "-t", "-s", "1200", "-o", str(temp_dir), str(source_path)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        candidates = sorted(temp_dir.glob("*.png"))
+        if not candidates:
+            return None
+        candidates[0].replace(preview_path)
+        return preview_path
+    except (subprocess.CalledProcessError, OSError):
+        return None
+    finally:
+        for child in temp_dir.glob("*"):
+            child.unlink(missing_ok=True)
+        temp_dir.rmdir()
+
+
+def user_template_preview_url(template):
+    preview_path = generate_user_template_preview(template.source_pptx_path)
+    if preview_path and preview_path.exists():
+        return reverse("user_template_preview", args=[template.id])
+    return preview_image_for_renderer(template.renderer_key)
+
+
 def preview_image_for_renderer(renderer_key):
     return static(PREVIEW_STATIC_BY_RENDERER.get(renderer_key, PREVIEW_STATIC_BY_RENDERER["modern-a"]))
 
@@ -191,7 +242,7 @@ def build_prompt_template_cards(user):
                     "eyebrow": "Custom",
                     "title": template.name,
                     "description": f"{template.renderer_label} 기반 · {template.original_filename}",
-                    "preview_url": preview_image_for_renderer(template.renderer_key),
+                    "preview_url": user_template_preview_url(template),
                     "is_custom": True,
                 }
             )
@@ -210,6 +261,15 @@ def build_prompt_context(request, *, selected_template_source_id=None):
 
 def healthz(request):
     return JsonResponse({"status": "ok"})
+
+
+@login_required(login_url='/login/')
+def user_template_preview(request, template_id):
+    template = get_object_or_404(UserTemplate, id=template_id, user=request.user)
+    preview_path = generate_user_template_preview(template.source_pptx_path)
+    if not preview_path or not preview_path.exists():
+        raise Http404("템플릿 썸네일을 찾을 수 없습니다.")
+    return FileResponse(preview_path.open("rb"), content_type=mimetypes.guess_type(preview_path.name)[0] or "image/png")
 
 
 def build_presentation_agent(client=None):

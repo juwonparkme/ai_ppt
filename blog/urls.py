@@ -15,6 +15,7 @@ urlpatterns = [
     path('main/', Sign_in_home, name='sign_in'),
     path('password_change/', password_change, name='password_change'),
     path('templates/', views.template_library, name='template_library'),
+    path('templates/<int:template_id>/preview/', views.user_template_preview, name='user_template_preview'),
     path('prompt/', prompt, name='prompt'),
     # path("chat/", chat_view, name="chat"),
     path('result/', views.display_slides, name='result'),
