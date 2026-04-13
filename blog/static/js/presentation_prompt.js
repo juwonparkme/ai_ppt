@@ -2,12 +2,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("prompt-form");
     const submitButton = document.getElementById("prompt-submit");
     const submitLabel = document.getElementById("prompt-submit-label");
-    const progress = document.getElementById("generation-progress");
     const topicField = document.getElementById("user-input");
     const suggestedChips = document.querySelectorAll(".suggested-topic-chip");
     const submitButtons = document.querySelectorAll("[data-generate-submit]");
 
-    if (!form || !submitButton || !submitLabel || !progress || !topicField) {
+    if (!form || !submitButton || !submitLabel || !topicField) {
         return;
     }
 
@@ -41,7 +40,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        progress.classList.remove("hidden");
         submitButtons.forEach(function (button) {
             button.disabled = true;
         });
