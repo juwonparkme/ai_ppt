@@ -55,3 +55,41 @@ curl -fsS http://127.0.0.1/healthz/
 - 앱 헬스체크 엔드포인트: `/healthz/`
 - 초보자용 복붙 가이드는 [docs/docker-beginner-checklist.md](/Users/bagjuwon/Projects/ai_ppt/docs/docker-beginner-checklist.md)
 - 실제 장애/해결 흐름 요약은 [docs/lightsail-nginx-troubleshooting.md](/Users/bagjuwon/Projects/ai_ppt/docs/lightsail-nginx-troubleshooting.md)
+
+## GitHub Actions CI/CD
+
+푸시 기반 자동 배포 파일:
+
+- `.github/workflows/ci-cd.yml`
+- `deploy/lightsail/remote-deploy.sh`
+
+동작 순서:
+
+1. GitHub Actions 가 `main` push 에서 실행
+2. Django check / test, renderer typecheck 통과
+3. Lightsail 서버에 SSH 접속
+4. 서버에서 `git pull --ff-only origin main`
+5. `deploy/lightsail/deploy.sh` 실행
+6. HTTPS 기준 헬스체크 통과 시 배포 완료
+
+### GitHub Secrets
+
+필수:
+
+- `LIGHTSAIL_HOST`
+- `LIGHTSAIL_USER`
+- `LIGHTSAIL_SSH_KEY`
+
+권장 GitHub Variables:
+
+- `LIGHTSAIL_PORT`
+  - 기본값 `22`
+- `LIGHTSAIL_APP_DIR`
+  - 기본값 `/opt/ai-ppt`
+
+### 원격 서버 전제
+
+- `/opt/ai-ppt` 에 repo clone 되어 있어야 함
+- `deploy/lightsail/app.env` 가 이미 작성되어 있어야 함
+- Docker / Docker Compose 사용 가능해야 함
+- 서버 로컬 변경분 없이 `git pull --ff-only` 가능한 상태 권장
