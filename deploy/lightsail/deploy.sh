@@ -12,7 +12,7 @@ if [ ! -f "$APP_ENV_FILE" ]; then
 fi
 
 mkdir -p deploy/lightsail/secrets
-mkdir -p deploy/lightsail/state/letsencrypt deploy/lightsail/state/certbot-www
+mkdir -p deploy/lightsail/state/letsencrypt deploy/lightsail/state/certbot-www deploy/lightsail/state/nginx-logs
 
 read_env_value() {
   key="$1"
@@ -34,6 +34,8 @@ LETSENCRYPT_EMAIL="$(read_env_value LETSENCRYPT_EMAIL)"
 LETSENCRYPT_STAGING="$(read_env_value LETSENCRYPT_STAGING)"
 NGINX_CLIENT_MAX_BODY_SIZE="$(read_env_value NGINX_CLIENT_MAX_BODY_SIZE)"
 NGINX_CLIENT_MAX_BODY_SIZE="${NGINX_CLIENT_MAX_BODY_SIZE:-50m}"
+ENABLE_ELASTIC_MONITORING="$(read_env_value ENABLE_ELASTIC_MONITORING)"
+ENABLE_ELASTIC_MONITORING="${ENABLE_ELASTIC_MONITORING:-false}"
 
 export NGINX_SERVER_NAME NGINX_CLIENT_MAX_BODY_SIZE
 
@@ -67,9 +69,19 @@ if [ "$NGINX_SERVER_NAME" != "_" ] && [ -n "$LETSENCRYPT_EMAIL" ]; then
     docker compose --env-file /dev/null -f docker-compose.lightsail.yml up -d certbot
 fi
 
+if [ "$ENABLE_ELASTIC_MONITORING" = "true" ]; then
+  env -i PATH="$PATH" HOME="$HOME" LIGHTSAIL_APP_ENV_FILE="$APP_ENV_FILE" \
+    docker compose --env-file /dev/null -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d elasticsearch kibana filebeat
+fi
+
 echo "배포 완료. 헬스체크:"
 echo "  curl -fsS http://127.0.0.1/healthz/"
 echo "로그 보기:"
 echo "  docker compose -f docker-compose.lightsail.yml logs -f"
+if [ "$ENABLE_ELASTIC_MONITORING" = "true" ]; then
+  echo "Kibana:"
+  echo "  ssh -L 5601:127.0.0.1:5601 <user>@<host>"
+  echo "  http://127.0.0.1:5601"
+fi
 echo "중지:"
 echo "  docker compose -f docker-compose.lightsail.yml down"

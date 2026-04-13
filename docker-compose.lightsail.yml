@@ -29,6 +29,7 @@ services:
     volumes:
       - ./deploy/lightsail/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - app_data:/data
+      - ./deploy/lightsail/state/nginx-logs:/var/log/nginx
       - ./deploy/lightsail/state/letsencrypt:/etc/letsencrypt
       - ./deploy/lightsail/state/certbot-www:/var/www/certbot
 

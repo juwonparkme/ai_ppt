@@ -55,6 +55,7 @@ curl -fsS http://127.0.0.1/healthz/
 - 앱 헬스체크 엔드포인트: `/healthz/`
 - 초보자용 복붙 가이드는 [docs/docker-beginner-checklist.md](/Users/bagjuwon/Projects/ai_ppt/docs/docker-beginner-checklist.md)
 - 실제 장애/해결 흐름 요약은 [docs/lightsail-nginx-troubleshooting.md](/Users/bagjuwon/Projects/ai_ppt/docs/lightsail-nginx-troubleshooting.md)
+- Nginx 로그 관제는 [docs/elastic-monitoring.md](/Users/bagjuwon/Projects/ai_ppt/docs/elastic-monitoring.md)
 
 ## GitHub Actions CI/CD
 

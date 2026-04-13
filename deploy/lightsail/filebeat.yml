@@ -1,0 +1,37 @@
+filebeat.inputs:
+  - type: filestream
+    id: ai-ppt-nginx-access
+    paths:
+      - /var/log/nginx/access.log
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+    fields:
+      service: ai-ppt
+      log_type: nginx_access
+    fields_under_root: true
+
+  - type: filestream
+    id: ai-ppt-nginx-error
+    paths:
+      - /var/log/nginx/error.log
+    fields:
+      service: ai-ppt
+      log_type: nginx_error
+    fields_under_root: true
+
+processors:
+  - add_host_metadata: ~
+  - add_fields:
+      target: ""
+      fields:
+        environment: production
+
+setup.template.name: "ai-ppt"
+setup.template.pattern: "ai-ppt-*"
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "ai-ppt-%{[log_type]}-%{+yyyy.MM.dd}"
+
