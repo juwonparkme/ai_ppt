@@ -443,74 +443,11 @@ def recent_history_entries_for(user, *, limit=4):
     return build_history_entries(user_histories)
 
 
-def build_portfolio_project_context(user, *, history_count, template_count):
-    return {
-        "title": "AI Presentation Generator with Web-Based Slide Editor",
-        "role": "풀스택 개발 · AI 생성 · 템플릿 시스템 · 배포 자동화",
-        "description": (
-            "Django 기반 발표 제작 워크플로우. 주제 입력부터 슬라이드 초안 생성, 웹 에디터 수정, "
-            "커스텀 템플릿 업로드, PPTX 다운로드, Lightsail 운영까지 한 흐름으로 정리했습니다."
-        ),
-        "skills": [
-            "Django",
-            "Python",
-            "OpenAI",
-            "PptxGenJS",
-            "Tailwind CSS",
-            "JavaScript",
-            "Docker",
-            "Nginx",
-            "GitHub Actions",
-            "AWS Lightsail",
-        ],
-        "highlights": [
-            {
-                "label": "생성 워크플로우",
-                "value": "주제 입력 → 개요 생성 → 편집 가능한 슬라이드 결과",
-            },
-            {
-                "label": "웹 에디터",
-                "value": "썸네일, 미리보기, 인스펙터, 재렌더 다운로드까지 브라우저에서 처리",
-            },
-            {
-                "label": "템플릿 시스템",
-                "value": "기본 디자인 템플릿 + 사용자 업로드 템플릿 + 자동 썸네일",
-            },
-            {
-                "label": "운영",
-                "value": "Docker · Nginx · GitHub Actions 기반 CI/CD · HTTPS 배포",
-            },
-        ],
-        "deliverables": [
-            "AI 생성 프롬프트 워크플로우",
-            "웹 기반 결과 편집기",
-            "PPTX 다운로드 파이프라인",
-            "사용자 템플릿 업로드/미리보기",
-            "Lightsail 배포 및 CI/CD",
-        ],
-        "status_cards": [
-            {"label": "운영 주소", "value": "ppt.juwonpark.me"},
-            {"label": "생성 기록", "value": f"{history_count}건"},
-            {"label": "커스텀 템플릿", "value": f"{template_count}개"},
-            {"label": "배포 스택", "value": "Docker + Nginx + Actions"},
-        ],
-    }
-
-
 def build_home_context(request):
     entries = recent_history_entries_for(request.user, limit=4)
-    template_count = 0
-    if getattr(request.user, "is_authenticated", False):
-        template_count = UserTemplate.objects.filter(user=request.user).count()
     return {
         "recent_history_entries": entries,
         "history_count": len(entries),
-        "template_count": template_count,
-        "portfolio_project": build_portfolio_project_context(
-            request.user,
-            history_count=len(entries),
-            template_count=template_count,
-        ),
     }
 
 

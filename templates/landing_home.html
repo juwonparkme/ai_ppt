@@ -1,171 +1,152 @@
 {% extends "site_app_base.html" %}
 {% load static %}
 
-{% block title %}Portfolio Project | SlideArchitect{% endblock %}
-
-{% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<style>
-    .portfolio-sheet {
-        font-family: "IBM Plex Sans KR", "Inter", sans-serif;
-    }
-    .portfolio-field {
-        border: 1px solid rgba(104, 120, 143, 0.22);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 247, 255, 0.92));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    }
-    .portfolio-gridline {
-        background-image:
-            linear-gradient(rgba(70, 71, 211, 0.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(70, 71, 211, 0.08) 1px, transparent 1px);
-        background-size: 24px 24px;
-    }
-</style>
-{% endblock %}
+{% block title %}Dashboard | SlideArchitect{% endblock %}
 
 {% block app_content %}
-<div class="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 md:px-8 md:py-10">
-    <section class="portfolio-sheet overflow-hidden rounded-[36px] border border-white/75 bg-surface-container-lowest shadow-studio">
-        <div class="flex items-start justify-between gap-4 border-b border-outline-variant/16 px-6 py-6 sm:px-8 md:px-10">
-            <div>
-                <p class="text-[12px] font-semibold uppercase tracking-[0.28em] text-primary">Portfolio Project</p>
-                <h1 class="mt-2 text-3xl font-semibold tracking-tight text-on-surface sm:text-4xl">현재 프로젝트 정리</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-7 text-on-surface-variant">
-                    업워크 프로젝트 입력 형식에 맞춰, 현재 서비스 범위와 내가 직접 구축한 기능을 한 화면에서 정리했습니다.
-                </p>
+<div class="mx-auto max-w-7xl px-4 py-6 sm:py-8 md:px-8 md:py-10">
+    <section class="relative overflow-hidden rounded-[28px] bg-primary px-5 py-7 text-white shadow-studio sm:rounded-[32px] sm:px-6 sm:py-8 md:px-10 md:py-12">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary via-primary-dim to-indigo-950 opacity-95"></div>
+        <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-container/40 blur-3xl"></div>
+        <div class="absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-secondary/25 blur-3xl"></div>
+        <div class="relative z-10 max-w-3xl">
+            <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.26em]">
+                <span class="h-2 w-2 rounded-full bg-secondary"></span>
+                AI PPT Automation
             </div>
-            <div class="hidden rounded-full border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary md:inline-flex">
-                Live · {{ portfolio_project.status_cards.0.value }}
-            </div>
-        </div>
-
-        <div class="grid gap-10 px-6 py-6 sm:px-8 md:grid-cols-[minmax(0,0.96fr)_minmax(420px,1.14fr)] md:px-10 md:py-8">
-            <div class="space-y-8">
-                <section>
-                    <label class="mb-3 block text-[15px] font-semibold text-on-surface">Project title *</label>
-                    <div class="portfolio-field rounded-[18px] px-5 py-4 text-[18px] font-semibold text-on-surface sm:text-[20px]">
-                        {{ portfolio_project.title }}
-                    </div>
-                </section>
-
-                <section>
-                    <label class="mb-3 block text-[15px] font-semibold text-on-surface">Your role (optional)</label>
-                    <div class="portfolio-field rounded-[18px] px-5 py-4 text-[17px] leading-7 text-on-surface">
-                        {{ portfolio_project.role }}
-                    </div>
-                </section>
-
-                <section>
-                    <label class="mb-3 block text-[15px] font-semibold text-on-surface">Project description *</label>
-                    <div class="portfolio-field min-h-[180px] rounded-[24px] px-5 py-5 text-[17px] leading-8 text-on-surface">
-                        {{ portfolio_project.description }}
-                    </div>
-                </section>
-
-                <section>
-                    <label class="mb-3 block text-[15px] font-semibold text-on-surface">Skills and deliverables *</label>
-                    <div class="portfolio-field rounded-[24px] px-4 py-4">
-                        <div class="flex flex-wrap gap-3">
-                            {% for skill in portfolio_project.skills %}
-                                <span class="rounded-full bg-[#141414] px-4 py-2 text-sm font-semibold text-white shadow-sm">{{ skill }}</span>
-                            {% endfor %}
-                        </div>
-                        <div class="mt-4 flex flex-wrap gap-3 border-t border-outline-variant/12 pt-4">
-                            {% for item in portfolio_project.deliverables %}
-                                <span class="rounded-full border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface-variant">{{ item }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <div class="space-y-6">
-                <section class="portfolio-gridline overflow-hidden rounded-[32px] border border-dashed border-primary/35 bg-gradient-to-br from-surface-container-low to-white p-6">
-                    <div class="rounded-[28px] bg-[#11131d] px-6 py-6 text-white shadow-[0_30px_60px_rgba(17,19,29,0.24)]">
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <p class="text-[11px] font-bold uppercase tracking-[0.32em] text-white/55">Heading</p>
-                                <h2 class="mt-3 text-2xl font-semibold leading-tight sm:text-[2rem]">웹 기반 슬라이드 생성 + 편집 + 배포</h2>
-                            </div>
-                            <span class="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
-                                Production
-                            </span>
-                        </div>
-                        <p class="mt-5 max-w-2xl text-sm leading-7 text-white/72">
-                            생성 워크플로우, 결과 편집기, 사용자 템플릿, 다운로드, 배포 자동화까지 한 프로젝트 안에서 운영 가능한 상태로 묶었습니다.
-                        </p>
-
-                        <div class="mt-6 grid gap-3 sm:grid-cols-2">
-                            {% for card in portfolio_project.status_cards %}
-                                <div class="rounded-[20px] border border-white/10 bg-white/5 px-4 py-4">
-                                    <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/50">{{ card.label }}</p>
-                                    <p class="mt-2 text-base font-semibold text-white">{{ card.value }}</p>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </section>
-
-                <section class="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div class="rounded-[28px] border border-outline-variant/16 bg-white p-6 shadow-soft">
-                        <p class="text-[12px] font-semibold uppercase tracking-[0.28em] text-primary">Core scope</p>
-                        <div class="mt-5 space-y-4">
-                            {% for item in portfolio_project.highlights %}
-                                <div class="rounded-[20px] border border-outline-variant/14 bg-surface-container-low px-4 py-4">
-                                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary">{{ item.label }}</p>
-                                    <p class="mt-2 text-sm leading-7 text-on-surface">{{ item.value }}</p>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="rounded-[28px] border border-outline-variant/16 bg-white p-6 shadow-soft">
-                        <p class="text-[12px] font-semibold uppercase tracking-[0.28em] text-primary">Recent outputs</p>
-                        <div class="mt-5 space-y-4">
-                            {% if recent_history_entries %}
-                                {% for history in recent_history_entries %}
-                                    <article class="rounded-[20px] border border-outline-variant/14 bg-surface-container-low px-4 py-4">
-                                        <div class="flex items-start justify-between gap-3">
-                                            <div>
-                                                <h3 class="text-base font-semibold text-on-surface">{{ history.record.ppt_title }}</h3>
-                                                <p class="mt-1 text-xs uppercase tracking-[0.2em] text-on-surface-variant">{{ history.record.create_date|date:"Y.m.d H:i" }}</p>
-                                            </div>
-                                            <span class="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">{{ history.record.backend }}</span>
-                                        </div>
-                                        <div class="mt-4 flex flex-wrap gap-2">
-                                            {% if history.result_url %}
-                                                <a class="rounded-full border border-outline-variant/18 px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition hover:bg-surface-container" href="{{ history.result_url }}">결과 보기</a>
-                                            {% endif %}
-                                            {% if history.download_url %}
-                                                <a class="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90" href="{{ history.download_url }}">다운로드</a>
-                                            {% endif %}
-                                        </div>
-                                    </article>
-                                {% endfor %}
-                            {% else %}
-                                <div class="rounded-[20px] border border-dashed border-outline-variant/22 bg-surface-container-low px-4 py-10 text-center text-sm leading-7 text-on-surface-variant">
-                                    아직 기록 없음. prompt에서 실제 생성 후 여기에 최근 결과가 쌓입니다.
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </div>
-
-        <div class="flex flex-col gap-3 border-t border-outline-variant/14 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8 md:px-10">
-            <p class="text-sm leading-7 text-on-surface-variant">
-                현재 요약은 실서비스 기준. 생성, 편집, 템플릿, 배포, HTTPS 운영 흐름까지 반영.
+            <h1 class="max-w-2xl text-2xl font-extrabold tracking-tight sm:text-3xl md:text-5xl">
+                {% if user.is_authenticated %}
+                    {{ user.username }}님, 다음 발표도 바로 시작하세요
+                {% else %}
+                    아이디어 한 줄로 프레젠테이션 초안 생성
+                {% endif %}
+            </h1>
+            <p class="mt-4 max-w-2xl text-sm leading-7 text-white/80 md:text-base">
+                피그마 대시보드 시안 그대로. 주제 입력, 템플릿 선택, 결과 다운로드까지 같은 흐름으로 연결됩니다.
             </p>
-            <div class="flex flex-wrap gap-3">
-                <a class="inline-flex items-center justify-center rounded-full border border-outline-variant/18 px-5 py-3 text-sm font-semibold text-on-surface transition hover:bg-surface-container-low" href="{% url 'template_library' %}">
-                    템플릿 관리
-                </a>
-                <a class="inline-flex items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:opacity-90" href="{% url 'prompt' %}">
-                    생성 화면으로 이동
-                </a>
+            <form action="{% url 'prompt' %}" class="mt-8 max-w-2xl" method="get">
+                <div class="relative flex flex-col gap-3 sm:block">
+                    <input class="h-14 w-full rounded-2xl border-none bg-surface-container-lowest px-5 text-base text-on-surface shadow-2xl placeholder:text-on-surface-variant/55 focus:ring-4 focus:ring-primary-fixed/30 sm:h-16 sm:pl-6 sm:pr-28 sm:text-lg" name="topic" placeholder="어떤 주제로 발표를 만들까요? 예: 2026 마케팅 전략" type="text" />
+                    <button class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90 sm:absolute sm:bottom-3 sm:right-3 sm:top-3 sm:h-auto" type="submit">
+                        <span class="material-symbols-outlined text-base">auto_awesome</span>
+                        생성
+                    </button>
+                </div>
+            </form>
+            <div class="mt-5 flex flex-wrap gap-3 text-xs font-medium text-white/80">
+                <a class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 transition hover:bg-white/20" href="{% url 'prompt' %}?topic=분기 실적 보고">#분기 실적 보고</a>
+                <a class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 transition hover:bg-white/20" href="{% url 'prompt' %}?topic=서비스 제안서">#서비스 제안서</a>
+                <a class="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 transition hover:bg-white/20" href="{% url 'prompt' %}?topic=투자 피치덱">#투자 피치덱</a>
             </div>
         </div>
     </section>
+
+    <section class="mt-10">
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-on-surface">인기 템플릿</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">`figma 1` 워크플로우와 연결된 실사용 카드</p>
+            </div>
+            <a class="text-sm font-bold text-primary hover:underline" href="{% url 'prompt' %}">워크플로우로 이동</a>
+        </div>
+        <div class="grid gap-6 md:grid-cols-3">
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}?template=modern-a">
+                <div class="aspect-[16/10] overflow-hidden bg-surface-container">
+                    <img alt="design tem1 preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/design_tem1_preview.png' %}" />
+                </div>
+                <div class="p-5">
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-primary">design_tem1</p>
+                    <h3 class="mt-2 text-lg font-bold text-on-surface">design_tem1</h3>
+                    <p class="mt-2 text-sm leading-6 text-on-surface-variant">강한 대비와 에디토리얼 리듬. 메시지 중심 발표용.</p>
+                </div>
+            </a>
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}?template=modern-b">
+                <div class="aspect-[16/10] overflow-hidden bg-surface-container">
+                    <img alt="design tem2 preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/design_tem2_preview.png' %}" />
+                </div>
+                <div class="p-5">
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-primary">design_tem2</p>
+                    <h3 class="mt-2 text-lg font-bold text-on-surface">design_tem2</h3>
+                    <p class="mt-2 text-sm leading-6 text-on-surface-variant">클린 블루 톤과 라운드 패널. 리포트형 발표용.</p>
+                </div>
+            </a>
+            <a class="group overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio" href="{% url 'prompt' %}?template=default">
+                <div class="aspect-[16/10] overflow-hidden bg-surface-container">
+                    <img alt="default template preview" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="{% static 'css/img/template3.jpg' %}" />
+                </div>
+                <div class="p-5">
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-primary">Template 3</p>
+                    <h3 class="mt-2 text-lg font-bold text-on-surface">기본형</h3>
+                    <p class="mt-2 text-sm leading-6 text-on-surface-variant">빠른 초안 생성용. 구조 확인 후 편집기로 넘기기 좋음.</p>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <section class="mt-10" id="recent-projects">
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-on-surface">최근 프로젝트</h2>
+                <p class="mt-1 text-sm text-on-surface-variant">
+                    {% if user.is_authenticated %}
+                        최근 생성 기록 {{ history_count }}건
+                    {% else %}
+                        로그인 후 실제 생성 기록이 여기에 표시됩니다
+                    {% endif %}
+                </p>
+            </div>
+            {% if user.is_authenticated %}
+                <a class="text-sm font-bold text-primary hover:underline" href="{% url 'profile' %}">전체 기록 보기</a>
+            {% endif %}
+        </div>
+        <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {% if recent_history_entries %}
+                {% for history in recent_history_entries %}
+                    <article class="overflow-hidden rounded-3xl border border-white/70 bg-surface-container-lowest shadow-soft transition hover:-translate-y-1 hover:shadow-studio">
+                        <div class="flex aspect-[4/3] items-end justify-between bg-gradient-to-br from-primary/15 via-primary-container/25 to-secondary/20 p-5">
+                            <span class="rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                                {{ history.record.backend }}
+                            </span>
+                            <span class="text-xs font-semibold text-on-surface-variant">{{ history.record.create_date|date:"m.d H:i" }}</span>
+                        </div>
+                        <div class="p-5">
+                            <h3 class="truncate text-sm font-bold text-on-surface">{{ history.record.ppt_title }}</h3>
+                            <p class="mt-2 text-xs font-medium uppercase tracking-[0.18em] {% if history.record.status == 'completed' %}text-secondary{% else %}text-error{% endif %}">
+                                {{ history.record.status }}
+                            </p>
+                            <div class="mt-4 flex gap-2">
+                                {% if history.download_url %}
+                                    <a class="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition hover:opacity-90" href="{{ history.download_url }}">다운로드</a>
+                                {% elif history.external_url %}
+                                    <a class="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition hover:opacity-90" href="{{ history.external_url }}">열기</a>
+                                {% endif %}
+                                {% if history.result_url %}
+                                    <a class="inline-flex items-center justify-center rounded-xl border border-outline-variant/20 px-3 py-2 text-xs font-semibold text-on-surface-variant transition hover:bg-surface-container-low" href="{{ history.result_url }}">결과 보기</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <article class="flex aspect-[4/3] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-outline-variant/30 bg-surface-container-lowest/70 p-6 text-center shadow-soft sm:col-span-2 xl:col-span-4">
+                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined text-3xl">add</span>
+                    </div>
+                    <h3 class="mt-4 text-lg font-bold text-on-surface">첫 프로젝트를 만들어 보세요</h3>
+                    <p class="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
+                        주제 입력 후 템플릿만 고르면 바로 결과 화면으로 이동합니다.
+                    </p>
+                    <a class="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90" href="{% url 'prompt' %}">
+                        <span class="material-symbols-outlined text-base">auto_awesome</span>
+                        새 프레젠테이션 시작
+                    </a>
+                </article>
+            {% endif %}
+        </div>
+    </section>
 </div>
+
+<a class="fixed bottom-8 right-8 z-40 hidden h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-container text-white shadow-2xl transition hover:scale-110 md:flex" href="{% url 'prompt' %}">
+    <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</a>
 {% endblock %}
