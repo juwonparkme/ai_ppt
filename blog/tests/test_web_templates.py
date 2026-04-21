@@ -33,8 +33,10 @@ class WebTemplateSmokeTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "현재 프로젝트 정리")
+        self.assertContains(response, "AI Presentation Generator with Web-Based Slide Editor")
         self.assertContains(response, "Q1 Strategy Deck")
-        self.assertContains(response, "최근 프로젝트")
+        self.assertContains(response, "Recent outputs")
 
     def test_healthz_returns_ok_payload(self):
         response = self.client.get(reverse("healthz"))
