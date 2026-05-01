@@ -49,7 +49,7 @@ jobs:
 
   deploy:
     name: Deploy to production
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ai-ppt, production]
     needs: ci
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.AIPPT_DEPLOY_ENABLED == 'true'
 
@@ -57,32 +57,11 @@ jobs:
       contents: read
 
     steps:
-      - name: Prepare SSH key
+      - name: Run production deploy
         env:
-          AIPPT_DEPLOY_SSH_KEY: ${{ secrets.AIPPT_DEPLOY_SSH_KEY }}
-        run: |
-          set -eu
-          mkdir -p ~/.ssh
-          printf '%s\n' "$AIPPT_DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-
-      - name: Add production host key
-        env:
-          AIPPT_DEPLOY_HOST: ${{ secrets.AIPPT_DEPLOY_HOST }}
-          AIPPT_DEPLOY_PORT: ${{ vars.AIPPT_DEPLOY_PORT }}
-        run: |
-          set -eu
-          PORT="${AIPPT_DEPLOY_PORT:-22}"
-          ssh-keyscan -p "$PORT" -H "$AIPPT_DEPLOY_HOST" >> ~/.ssh/known_hosts
-
-      - name: Run remote deploy
-        env:
-          AIPPT_DEPLOY_HOST: ${{ secrets.AIPPT_DEPLOY_HOST }}
-          AIPPT_DEPLOY_USER: ${{ secrets.AIPPT_DEPLOY_USER }}
-          AIPPT_DEPLOY_PORT: ${{ vars.AIPPT_DEPLOY_PORT }}
           AIPPT_APP_DIR: ${{ vars.AIPPT_APP_DIR }}
         run: |
           set -eu
-          PORT="${AIPPT_DEPLOY_PORT:-22}"
           APP_DIR="${AIPPT_APP_DIR:-/home/ubuntu/apps/ai-ppt}"
-          ssh -p "$PORT" "$AIPPT_DEPLOY_USER@$AIPPT_DEPLOY_HOST" "cd '$APP_DIR' && sh ./deploy/systemd/remote-deploy.sh"
+          cd "$APP_DIR"
+          sh ./deploy/systemd/remote-deploy.sh

@@ -6,7 +6,7 @@
 
 - GitHub `main` push
 - GitHub Actions CI 실행
-- SSH로 서버 접속
+- 서버의 self-hosted runner가 CD job 실행
 - `/home/ubuntu/apps/ai-ppt`에서 최신 코드 pull
 - Python/NPM 의존성 설치
 - Django migrate / collectstatic / check
@@ -21,19 +21,17 @@
 - 서비스 바인딩: `127.0.0.1:8020`
 - Nginx 라우팅: `aippt.juwonpark.me -> 127.0.0.1:8020`
 - 서버에 `python3`, `venv`, `npm`, `git`, `curl` 설치
+- GitHub self-hosted runner: `aippt-runner`
+- runner labels: `self-hosted`, `ai-ppt`, `production`
 
-## GitHub Secrets
+## GitHub Variables
 
-필수 Secrets:
+필수 Variables:
 
-- `AIPPT_DEPLOY_HOST`: 서버 IP 또는 호스트명
-- `AIPPT_DEPLOY_USER`: SSH 사용자. 현재 서버 기준 `ubuntu`
-- `AIPPT_DEPLOY_SSH_KEY`: 서버 접속용 private key 전체 내용
+- `AIPPT_DEPLOY_ENABLED`: `true`일 때만 배포 job 실행
 
 권장 Variables:
 
-- `AIPPT_DEPLOY_ENABLED`: `true`일 때만 배포 job 실행
-- `AIPPT_DEPLOY_PORT`: 기본값 `22`
 - `AIPPT_APP_DIR`: 기본값 `/home/ubuntu/apps/ai-ppt`
 
 ## 서버 sudo 권한
