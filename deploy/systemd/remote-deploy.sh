@@ -32,21 +32,31 @@ mkdir -p staticfiles media rendered-presentations user-templates
 
 sudo -n systemctl restart "$SERVICE_NAME"
 
+HEALTH_OK=0
+set +e
 for attempt in $(seq 1 30); do
-  if sudo -n systemctl is-active --quiet "$SERVICE_NAME" \
-    && curl --silent --show-error --fail "$HEALTH_URL" >/dev/null; then
+  sudo -n systemctl is-active --quiet "$SERVICE_NAME"
+  SERVICE_STATUS="$?"
+  curl --silent --show-error --fail "$HEALTH_URL" >/dev/null
+  CURL_STATUS="$?"
+
+  if [ "$SERVICE_STATUS" -eq 0 ] && [ "$CURL_STATUS" -eq 0 ]; then
     echo "Healthcheck passed on attempt ${attempt}."
+    HEALTH_OK=1
     break
   fi
 
-  if [ "$attempt" -eq 30 ]; then
-    sudo -n systemctl status "$SERVICE_NAME" --no-pager || true
-    curl --verbose --max-time 10 "$HEALTH_URL" || true
-    exit 1
+  if [ "$attempt" -lt 30 ]; then
+    sleep 1
   fi
-
-  sleep 1
 done
+set -e
+
+if [ "$HEALTH_OK" -ne 1 ]; then
+  sudo -n systemctl status "$SERVICE_NAME" --no-pager || true
+  curl --verbose --max-time 10 "$HEALTH_URL" || true
+  exit 1
+fi
 
 echo "Deploy complete: ${SERVICE_NAME}"
 echo "Healthcheck complete: ${HEALTH_URL}"
