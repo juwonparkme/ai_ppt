@@ -59,10 +59,11 @@ curl -fsS http://127.0.0.1/healthz/
 
 ## GitHub Actions CI/CD
 
-푸시 기반 자동 배포 파일:
+Docker/Lightsail 방식 푸시 기반 자동 배포 파일:
 
-- `.github/workflows/ci-cd.yml`
 - `deploy/lightsail/remote-deploy.sh`
+
+현재 `aippt.juwonpark.me` 운영 서버는 Docker가 아니라 `systemd + Nginx + gunicorn`으로 배포되어 있습니다. 현재 운영 방식 CI/CD는 [docs/systemd-nginx-ci-cd.md](/Users/bagjuwon/Projects/ai_ppt/docs/systemd-nginx-ci-cd.md)를 기준으로 봅니다.
 
 동작 순서:
 
