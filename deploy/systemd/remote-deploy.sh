@@ -31,9 +31,22 @@ mkdir -p staticfiles media rendered-presentations user-templates
 .venv/bin/python manage.py check
 
 sudo -n systemctl restart "$SERVICE_NAME"
-sudo -n systemctl is-active --quiet "$SERVICE_NAME"
 
-curl --silent --show-error --fail "$HEALTH_URL" >/dev/null
+for attempt in $(seq 1 30); do
+  if sudo -n systemctl is-active --quiet "$SERVICE_NAME" \
+    && curl --silent --show-error --fail "$HEALTH_URL" >/dev/null; then
+    echo "Healthcheck passed on attempt ${attempt}."
+    break
+  fi
+
+  if [ "$attempt" -eq 30 ]; then
+    sudo -n systemctl status "$SERVICE_NAME" --no-pager || true
+    curl --verbose --max-time 10 "$HEALTH_URL" || true
+    exit 1
+  fi
+
+  sleep 1
+done
 
 echo "Deploy complete: ${SERVICE_NAME}"
 echo "Healthcheck complete: ${HEALTH_URL}"

@@ -42,6 +42,7 @@ GitHub Actions는 비대화형 SSH라서 비밀번호 입력이 불가능합니�
 ```bash
 sudo -n systemctl restart aippt
 sudo -n systemctl is-active --quiet aippt
+sudo -n systemctl status aippt --no-pager
 ```
 
 실패하면 서버에서 sudoers에 최소 권한을 추가합니다.
@@ -54,7 +55,7 @@ sudo visudo -f /etc/sudoers.d/aippt-deploy
 내용:
 
 ```sudoers
-ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart aippt, /usr/bin/systemctl is-active --quiet aippt
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart aippt, /usr/bin/systemctl is-active --quiet aippt, /usr/bin/systemctl status aippt --no-pager
 ```
 
 `command -v systemctl` 결과가 `/usr/bin/systemctl`이 아니면 sudoers의 경로도 그 값으로 맞춥니다.
