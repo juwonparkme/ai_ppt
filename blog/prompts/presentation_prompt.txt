@@ -1,0 +1,48 @@
+Write a Korean PowerPoint presentation draft about "$topic".
+
+Return all three sections in one response. Do not include any explanation outside the required format.
+
+Section rules:
+- #Filename: short descriptive filename only, no quotes, no extension.
+- #Overview: title slide and table of contents.
+- #Details: detailed content slides based on the table of contents.
+- The answer must be only in Korean except the section markers and "Summary".
+- The detailed content should be between 2000 and 3000 Korean characters.
+- Each content slide should have 3 or more concise bullet points.
+- The last detail slide must be a summary slide.
+
+Use this format exactly:
+#Filename:
+[짧은 파일명]
+
+#Overview:
+#Title: [PPT 제목]
+
+#Slide: 1
+#Header: [PPT 제목]
+#Content: [PPT 제목에 대한 부가 설명]
+
+#Slide: 2
+#Header: 목차
+#Content:
+1. [목차 제목 1]
+2. [목차 제목 2]
+3. [목차 제목 3]
+4. [목차 제목 4]
+5. [목차 제목 5]
+6. [목차 제목 6]
+
+#Details:
+#Slide: 3
+#Header: [세부 주제]
+#Content:
+- [핵심 포인트 1]
+- [핵심 포인트 2]
+- [핵심 포인트 3]
+
+#Slide: LAST
+#Header: Summary
+#Content:
+- [요약 포인트 1]
+- [요약 포인트 2]
+- [요약 포인트 3]

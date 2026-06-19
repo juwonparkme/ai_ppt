@@ -32,12 +32,11 @@ from .services.editor_payload import (
     build_presentation_spec_from_payload,
     normalize_result_payload as normalize_editor_result_payload,
 )
-from .services.presentation_agent import PresentationAgent
+from .services.presentation_agent import PresentationAgent, normalize_output_title
 from .services.ppt_renderer import render_presentation
 
 # OpenAI 설정
 SLIDE_TITLE_TEXT = ' '
-filename = ' '
 
 PPTX_TEMPLATE_BY_SOURCE_ID = {
     "1Mohc1dhmGKbE1NALs8QRRftFK8wnJMJ-CUOMpv36Z50": "modern-a",
@@ -114,12 +113,6 @@ def get_openai_client():
             "OPENAI_API_KEY가 없습니다. /Users/bagjuwon/Projects/ppt_auto/.env 에 값을 넣어야 합니다."
         )
     return openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-def normalize_output_title(raw_title):
-    title = raw_title.strip().replace(" ", "_")
-    title = re.sub(r"\.(pptx|ppt|txt)$", "", title, flags=re.IGNORECASE)
-    return title.rstrip("._") or "presentation"
-
-
 def build_custom_template_source_id(template_id):
     return f"{CUSTOM_TEMPLATE_SOURCE_PREFIX}{template_id}"
 
@@ -615,7 +608,6 @@ def prompt(request):
     print(user_id)
 
     global SLIDE_TITLE_TEXT
-    global filename
     if request.method == "POST":
         selected_source_id = request.POST.get("presentation_id")
         template_key = resolve_pptx_template(selected_source_id, user=request.user)
@@ -624,9 +616,8 @@ def prompt(request):
         print(SLIDE_TITLE_TEXT)
 
         agent = build_presentation_agent()
-        filename = normalize_output_title(agent.generate_filename(source_topic))
-        output_title = filename
-        agent_result = agent.run(source_topic, output_title=output_title, template=template_key)
+        agent_result = agent.run(source_topic, template=template_key)
+        output_title = agent_result.output_title
 
         try:
             render_result = render_with_pptxgenjs(agent_result, template_key)

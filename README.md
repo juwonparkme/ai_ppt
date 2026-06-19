@@ -14,7 +14,7 @@
 ### 이 프로젝트가 하는 일
 
 - 주제 한 줄로 발표 자료 초안 생성
-- OpenAI 프롬프트를 단계별로 분리해 개요/상세 내용 생성
+- OpenAI 단일 호출로 파일명/개요/상세 내용 생성
 - `SlideSpec` 계약으로 슬라이드 구조 표준화
 - `modern-a`, `modern-b` 템플릿으로 실제 PPTX 렌더
 - 웹 에디터에서 슬라이드 텍스트 수정, 추가, 삭제
@@ -39,7 +39,7 @@
 
 - 주제 입력
 - 템플릿 선택
-- OpenAI 기반 개요/상세 슬라이드 생성
+- OpenAI 기반 파일명/개요/상세 슬라이드 생성
 
 ### 2. 편집
 
@@ -123,7 +123,6 @@ npm --prefix ppt-renderer install
 DJANGO_SECRET_KEY=your-secret-key
 DJANGO_DEBUG=true
 OPENAI_API_KEY=your-openai-api-key
-OPENAI_FILENAME_MODEL=gpt-3.5-turbo-1106
 OPENAI_PRESENTATION_MODEL=gpt-4-turbo
 PPT_RENDER_BACKEND=pptxgenjs
 PPT_RENDERER_DIR=/absolute/path/to/ai_ppt/ppt-renderer

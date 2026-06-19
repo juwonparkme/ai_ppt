@@ -95,7 +95,6 @@ class PromptViewTests(TestCase):
         mock_reserve_render_output_dir,
     ):
         fake_agent = SimpleNamespace(
-            generate_filename=Mock(return_value="Generated Name"),
             run=Mock(return_value=self.make_agent_result("AI topic", "Generated_Name", template="modern-b")),
         )
         mock_build_presentation_agent.return_value = fake_agent
@@ -112,8 +111,7 @@ class PromptViewTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
-        fake_agent.generate_filename.assert_called_once_with("AI topic")
-        fake_agent.run.assert_called_once_with("AI topic", output_title="Generated_Name", template="modern-b")
+        fake_agent.run.assert_called_once_with("AI topic", template="modern-b")
         mock_reserve_render_output_dir.assert_called_once_with("Generated_Name")
         mock_render_presentation.assert_called_once()
         render_spec = mock_render_presentation.call_args.args[0]
@@ -142,7 +140,6 @@ class PromptViewTests(TestCase):
         mock_render_with_pptxgenjs,
     ):
         fake_agent = SimpleNamespace(
-            generate_filename=Mock(return_value="Broken Deck"),
             run=Mock(return_value=self.make_agent_result("AI topic", "Broken_Deck", template="modern-b")),
         )
         mock_build_presentation_agent.return_value = fake_agent
@@ -209,7 +206,6 @@ class PromptViewTests(TestCase):
             return {"outputPath": str(output_path), "slideCount": len(spec["slides"])}
 
         fake_agent = SimpleNamespace(
-            generate_filename=Mock(return_value="Disk Deck"),
             run=Mock(return_value=self.make_agent_result("AI topic", "Disk_Deck")),
         )
 
@@ -275,7 +271,6 @@ class PromptViewTests(TestCase):
             source_pptx_path="/tmp/custom-pitch.pptx",
         )
         fake_agent = SimpleNamespace(
-            generate_filename=Mock(return_value="Custom Deck"),
             run=Mock(return_value=self.make_agent_result("AI topic", "Custom_Deck", template="modern-b")),
         )
         mock_build_presentation_agent.return_value = fake_agent
@@ -292,7 +287,7 @@ class PromptViewTests(TestCase):
         )
 
         self.assertRedirects(response, reverse("result"), fetch_redirect_response=False)
-        fake_agent.run.assert_called_once_with("AI topic", output_title="Custom_Deck", template="modern-b")
+        fake_agent.run.assert_called_once_with("AI topic", template="modern-b")
         render_spec = mock_render_presentation.call_args.args[0]
         self.assertEqual(render_spec["template"], "modern-b")
 

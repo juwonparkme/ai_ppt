@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from string import Template
 
 from django.conf import settings
@@ -26,30 +27,12 @@ class PresentationAgent:
         self.client = client
         self.prompts_dir = prompts_dir or PROMPTS_DIR
 
-    def generate_filename(self, topic: str) -> str:
-        prompt = self.render_prompt("filename_prompt.txt", topic=topic)
-        return self._complete(
-            model=settings.OPENAI_FILENAME_MODEL,
-            prompt=prompt,
-            temperature=0.5,
-            max_tokens=30,
-        )
-
-    def generate_overview(self, topic: str) -> str:
-        prompt = self.render_prompt("overview_prompt.txt", topic=topic)
+    def generate_presentation(self, topic: str) -> str:
+        prompt = self.render_prompt("presentation_prompt.txt", topic=topic)
         return self._complete(
             model=settings.OPENAI_PRESENTATION_MODEL,
             prompt=prompt,
-            temperature=0.8,
-            max_tokens=4096,
-        )
-
-    def generate_details(self, overview_text: str) -> str:
-        prompt = self.render_prompt("detail_prompt.txt", overview_text=overview_text)
-        return self._complete(
-            model=settings.OPENAI_PRESENTATION_MODEL,
-            prompt=prompt,
-            temperature=0.5,
+            temperature=0.7,
             max_tokens=4096,
         )
 
@@ -57,11 +40,13 @@ class PresentationAgent:
         self,
         source_topic: str,
         *,
-        output_title: str,
         template: str = "modern-a",
     ) -> PresentationAgentResult:
-        overview_text = self.generate_overview(source_topic)
-        detail_text = self.generate_details(overview_text)
+        content = self.generate_presentation(source_topic)
+        sections = parse_presentation_sections(content)
+        output_title = normalize_output_title(sections["filename"] or source_topic)
+        overview_text = sections["overview"]
+        detail_text = sections["details"]
         spec = build_slide_spec(source_topic, overview_text, detail_text, template=template)
         return PresentationAgentResult(
             source_topic=source_topic,
@@ -91,3 +76,42 @@ class PresentationAgent:
             max_tokens=max_tokens,
         )
         return response.choices[0].message.content.strip()
+
+
+SECTION_MARKERS = {
+    "#Filename:": "filename",
+    "#Overview:": "overview",
+    "#Details:": "details",
+}
+
+
+def normalize_output_title(raw_title: str) -> str:
+    title = raw_title.strip().replace(" ", "_")
+    title = re.sub(r"\.(pptx|ppt|txt)$", "", title, flags=re.IGNORECASE)
+    return title.rstrip("._") or "presentation"
+
+
+def parse_presentation_sections(content: str) -> dict[str, str]:
+    sections = {key: [] for key in SECTION_MARKERS.values()}
+    current_key: str | None = None
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        matched_marker = next(
+            (marker for marker in SECTION_MARKERS if stripped.startswith(marker)),
+            None,
+        )
+        if matched_marker:
+            current_key = SECTION_MARKERS[matched_marker]
+            inline_value = stripped.removeprefix(matched_marker).strip()
+            if inline_value:
+                sections[current_key].append(inline_value)
+            continue
+        if current_key:
+            sections[current_key].append(line)
+
+    parsed = {key: "\n".join(value).strip() for key, value in sections.items()}
+    missing = [key for key, value in parsed.items() if not value]
+    if missing:
+        raise ValueError(f"OpenAI 응답에 필수 섹션이 없습니다: {', '.join(missing)}")
+    return parsed

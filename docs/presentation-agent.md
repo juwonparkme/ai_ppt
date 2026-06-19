@@ -18,11 +18,10 @@ read_when:
 
 ## 처리
 
-1. 주제로부터 출력 파일명 생성
-2. 주제로 개요 슬라이드 생성
-3. 개요를 바탕으로 상세 슬라이드 생성
-4. `SlideSpec` 으로 구조화
-5. 렌더러에 전달
+1. 주제로부터 파일명/개요/상세 내용을 단일 OpenAI 호출로 생성
+2. 응답을 `#Filename:`, `#Overview:`, `#Details:` 섹션으로 분리
+3. 개요/상세 내용을 `SlideSpec` 으로 구조화
+4. 렌더러에 전달
 
 ## 출력
 
@@ -35,9 +34,7 @@ read_when:
 
 - [blog/services/presentation_agent.py](/Users/bagjuwon/Projects/ai_ppt/blog/services/presentation_agent.py)
   입력-처리-출력 오케스트레이션
-- [blog/prompts/filename_prompt.txt](/Users/bagjuwon/Projects/ai_ppt/blog/prompts/filename_prompt.txt)
-- [blog/prompts/overview_prompt.txt](/Users/bagjuwon/Projects/ai_ppt/blog/prompts/overview_prompt.txt)
-- [blog/prompts/detail_prompt.txt](/Users/bagjuwon/Projects/ai_ppt/blog/prompts/detail_prompt.txt)
+- [blog/prompts/presentation_prompt.txt](/Users/bagjuwon/Projects/ai_ppt/blog/prompts/presentation_prompt.txt)
 - [blog/slide_spec.py](/Users/bagjuwon/Projects/ai_ppt/blog/slide_spec.py)
   구조화 계약
 - [blog/services/ppt_renderer.py](/Users/bagjuwon/Projects/ai_ppt/blog/services/ppt_renderer.py)
@@ -54,7 +51,7 @@ read_when:
 
 ## 원칙
 
-- 사용자 입력 주제와 출력 파일명을 분리한다.
+- 사용자 입력 주제와 출력 파일명을 분리하되, OpenAI 호출은 한 번만 한다.
 - 프롬프트는 코드 밖 파일로 둔다.
 - 뷰는 HTTP 처리만 맡기고 생성 로직은 서비스로 보낸다.
 - 렌더 입력은 항상 `SlideSpec` 으로 고정한다.

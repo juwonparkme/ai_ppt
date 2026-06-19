@@ -163,7 +163,6 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "fqhh wfyc rngk dxfp")  #
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # 이메일 보내는 사람
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_FILENAME_MODEL = os.getenv("OPENAI_FILENAME_MODEL", "gpt-3.5-turbo-1106")
 OPENAI_PRESENTATION_MODEL = os.getenv("OPENAI_PRESENTATION_MODEL", "gpt-4-turbo")
 PPT_RENDER_BACKEND = os.getenv("PPT_RENDER_BACKEND", "pptxgenjs")
 PPT_RENDERER_DIR = os.getenv("PPT_RENDERER_DIR", str(BASE_DIR / "ppt-renderer"))
