@@ -105,6 +105,128 @@
     }
     .diagram svg { width: 100%; height: auto; display: block; }
     .badge { display: inline-block; color: #2a4490; font-weight: 700; }
+    @media screen {
+      html {
+        background: #dfe5f1;
+      }
+      body {
+        background:
+          linear-gradient(90deg, rgba(42, 68, 144, .08), transparent 34%),
+          #dfe5f1;
+        padding: 28px 0;
+      }
+      .page {
+        width: min(calc(100vw - 48px), 210mm);
+        min-height: auto;
+        margin: 0 auto 28px;
+        background: #fff;
+        box-shadow: 0 18px 48px rgba(31, 45, 77, .18);
+        overflow: hidden;
+      }
+      .page:last-child {
+        margin-bottom: 0;
+      }
+      .cover {
+        min-height: 70vh;
+        height: auto;
+      }
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+      thead, tbody, tr {
+        width: 100%;
+      }
+      pre {
+        overflow-x: auto;
+      }
+    }
+    @media screen and (max-width: 760px) {
+      body {
+        padding: 0;
+      }
+      .page {
+        width: 100%;
+        margin: 0;
+        padding: 28px 20px 44px;
+        box-shadow: none;
+        border-bottom: 1px solid #d8dce8;
+      }
+      .header {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .meta {
+        text-align: left;
+      }
+      .cover {
+        min-height: calc(100vh - 56px);
+        align-items: flex-start;
+        text-align: left;
+      }
+      .cover h1 {
+        font-size: 30px;
+      }
+      .cover h2 {
+        font-size: 18px;
+        line-height: 1.45;
+        width: 100%;
+        max-width: 300px;
+        margin-left: 0;
+        margin-right: 0;
+        overflow-wrap: anywhere;
+      }
+      .cover .line {
+        width: 100%;
+        max-width: 280px;
+      }
+      .cover p,
+      p,
+      li {
+        font-size: 15px;
+      }
+      .cover p {
+        width: 100%;
+        max-width: 300px;
+        margin-left: 0;
+        margin-right: 0;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+      h2.section-title {
+        font-size: 20px;
+      }
+      h3 {
+        font-size: 17px;
+      }
+      th, td {
+        font-size: 13px;
+        min-width: 130px;
+      }
+      pre {
+        font-size: 12px;
+      }
+      .page-number {
+        right: 20px;
+        bottom: 14px;
+      }
+    }
+    @media print {
+      html, body {
+        background: #fff;
+        padding: 0;
+      }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+      table {
+        display: table;
+        overflow: visible;
+      }
+    }
   </style>
 </head>
 <body>
