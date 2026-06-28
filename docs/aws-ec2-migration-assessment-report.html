@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SlideArchitect - AWS EC2 이관을 위한 인프라 현황 파악 및 계획 수립 요청서</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+    @page { size: 210mm 297mm; margin: 0; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #333;
+      font-family: 'Noto Sans KR', sans-serif;
+      line-height: 1.55;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      box-sizing: border-box;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 22mm 18mm 18mm;
+      page-break-after: always;
+      position: relative;
+    }
+    .header {
+      border-bottom: 2px solid #2a4490;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .logo { color: #2a4490; font-size: 16pt; font-weight: 700; letter-spacing: .3pt; }
+    .meta { font-size: 9.5pt; text-align: right; color: #444; }
+    .cover {
+      height: 225mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .cover h1 { color: #2a4490; font-size: 30pt; margin: 0 0 14pt; }
+    .cover h2 { font-size: 20pt; font-weight: 500; margin: 0 0 24pt; }
+    .cover .line { width: 120mm; height: 1px; background: #2a4490; margin: 0 0 24pt; }
+    .cover p { font-size: 13pt; margin: 5pt 0; }
+    h2.section-title {
+      color: #2a4490;
+      font-size: 15pt;
+      border-bottom: 1px solid #2a4490;
+      padding-bottom: 5pt;
+      margin: 18pt 0 12pt;
+    }
+    h3 {
+      color: #2a4490;
+      font-size: 12.5pt;
+      margin: 15pt 0 8pt;
+    }
+    p, li { font-size: 9.8pt; }
+    ul { margin: 7pt 0 11pt; padding-left: 18pt; }
+    table { width: 100%; border-collapse: collapse; margin: 10pt 0 15pt; }
+    th, td { border: 1px solid #d8dce8; padding: 6pt; font-size: 8.8pt; vertical-align: top; }
+    th { background: #eef2fb; text-align: center; font-weight: 700; color: #263b78; }
+    td { text-align: left; }
+    .note {
+      border: 1px solid #b9c6ed;
+      background: #f6f8ff;
+      border-radius: 6px;
+      padding: 9pt 11pt;
+      margin: 10pt 0 14pt;
+      font-size: 9.5pt;
+    }
+    .risk {
+      border-color: #e3b652;
+      background: #fff9ea;
+    }
+    code {
+      font-family: Menlo, Consolas, monospace;
+      font-size: 8.3pt;
+      background: #f4f6fa;
+      padding: 0 2pt;
+      border-radius: 2pt;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #172033;
+      color: #f3f7ff;
+      border-radius: 6px;
+      padding: 10pt;
+      font-family: Menlo, Consolas, monospace;
+      font-size: 7.4pt;
+      line-height: 1.45;
+      margin: 8pt 0 14pt;
+    }
+    .page-number {
+      position: absolute;
+      right: 18mm;
+      bottom: 10mm;
+      font-size: 9pt;
+      color: #777;
+    }
+    .diagram svg { width: 100%; height: auto; display: block; }
+    .badge { display: inline-block; color: #2a4490; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <div class="cover">
+      <h1>SlideArchitect</h1>
+      <div class="line"></div>
+      <h2>AWS EC2 이관을 위한<br>인프라 현황 파악 및 계획 수립 요청서</h2>
+      <p>대상 서비스: AI 기반 PPT 생성 웹앱 <span class="badge">ai_ppt</span></p>
+      <p>작성일: 2026-06-28</p>
+      <p>작성 기준: 저장소 문서/코드 확인 + 운영 서버 확인 요청 명령</p>
+    </div>
+    <div class="page-number">1</div>
+  </section>
+
+  <section class="page">
+    <div class="header">
+      <div class="logo">SlideArchitect EC2 Migration</div>
+      <div class="meta">읽기 전용 확인 요청서<br>비밀값 원문 공유 금지</div>
+    </div>
+
+    <h2 class="section-title">1. 문서 목적</h2>
+    <p>
+      본 문서는 현재 운영 중인 <code>ai_ppt</code> 서비스를 AWS EC2 환경으로 이전하기 전,
+      운영 서버에서 확인해야 할 실행 서비스, 포트, 런타임 버전, 데이터 보관 경로, 배포 방식,
+      백업 필요 범위를 정리하기 위한 사전 요청서입니다.
+    </p>
+    <p>
+      이 저장소 기준 서비스는 Django/Gunicorn 웹앱, Nginx reverse proxy, Node.js 기반
+      <code>ppt-renderer</code>, SQLite 파일 DB, 사용자 업로드/렌더 결과 파일, OpenAI API 및 SMTP 외부 연동으로 구성됩니다.
+      단, 실제 운영 서버의 프로세스와 데이터 용량은 아래 읽기 전용 명령 결과로 최종 확정해야 합니다.
+    </p>
+    <div class="note risk">
+      운영 서버의 <code>.env</code>, API 키, SMTP 비밀번호, Django secret key, SSH 키, 인증서 private key는 원문 공유 대상이 아닙니다.
+      담당자는 키 이름, 파일 존재 여부, 마스킹된 설정 여부, 권한/소유자/수정일만 공유합니다.
+    </div>
+
+    <h2 class="section-title">2. 확인 범위 및 AWS EC2 이관 관점</h2>
+    <table>
+      <thead>
+        <tr><th>구분</th><th>현재 확인된 근거</th><th>EC2 이관 관점</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>애플리케이션</td>
+          <td>Django 5.1.6, Python 3.12 계열, Gunicorn 23.0.0, OpenAI SDK 사용</td>
+          <td>EC2에 Python venv 또는 Docker 이미지로 배포. 운영 방식은 systemd 우선 검토</td>
+        </tr>
+        <tr>
+          <td>렌더러</td>
+          <td>Node.js 20, TypeScript, PptxGenJS, <code>npm --prefix ppt-renderer</code> 실행</td>
+          <td>EC2에 Node 20/npm 설치 또는 Docker 이미지 내부 포함 필요</td>
+        </tr>
+        <tr>
+          <td>웹 진입점</td>
+          <td>Nginx가 공개 80/443을 받고 Gunicorn 로컬 포트로 프록시</td>
+          <td>Security Group은 80/443만 공개, 앱 포트는 localhost 또는 내부만 허용</td>
+        </tr>
+        <tr>
+          <td>저장소</td>
+          <td>SQLite, media, rendered presentations, user templates가 로컬 파일 기반</td>
+          <td>EBS 볼륨에 데이터 경로 고정. 필요 시 S3 백업/정적 파일 분리 검토</td>
+        </tr>
+        <tr>
+          <td>외부 연동</td>
+          <td>OpenAI API, Gmail SMTP 또는 SMTP 서버 사용</td>
+          <td>EC2 outbound 443/587 허용, 비밀값은 SSM Parameter Store 또는 서버 환경 파일로 관리</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title">3. 서버별 실행 서비스 및 이전 대상</h2>
+    <table>
+      <thead>
+        <tr><th>서버/역할</th><th>확인된 실행 대상</th><th>이전 대상</th><th>확정 필요</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>현재 운영 서버</td>
+          <td><code>aippt.service</code>, Nginx, Gunicorn, Python venv, Node/npm renderer</td>
+          <td>소스코드, venv 재현 절차, Nginx 설정, systemd unit, <code>.env</code> 키 목록</td>
+          <td>실제 OS, CPU/RAM, 디스크, 포트, 로그 경로, 서비스 unit 내용</td>
+        </tr>
+        <tr>
+          <td>데이터 저장 영역</td>
+          <td>SQLite DB, staticfiles, media, rendered presentations, user templates 후보</td>
+          <td>DB 파일, 사용자 업로드, 렌더 결과, 커스텀 템플릿, 운영 로그 보관 정책</td>
+          <td>각 경로 용량, 파일 수, 최근 수정일, 보관/삭제 기준</td>
+        </tr>
+        <tr>
+          <td>선택형 Docker 경로</td>
+          <td><code>docker-compose.lightsail.yml</code>과 <code>/data</code> volume 경로 존재</td>
+          <td>Docker로 이전 시 compose, app env, volume, Nginx/certbot state</td>
+          <td>운영 서버가 실제 Docker 방식인지 systemd 방식인지 재확인</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title">4. 최종 이관 대상 폴더 목록</h2>
+    <table>
+      <thead>
+        <tr><th>분류</th><th>후보 경로</th><th>판단</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>필수</td>
+          <td><code>/home/ubuntu/apps/ai-ppt/.env</code>, <code>db.sqlite3</code>, <code>media/</code>, <code>rendered-presentations/</code>, <code>user-templates/</code></td>
+          <td>운영 서버 명령으로 실제 경로와 용량 확인 후 EC2/EBS 이관</td>
+        </tr>
+        <tr>
+          <td>조건부</td>
+          <td><code>tmp/staticfiles/</code>, <code>staticfiles/</code>, <code>deploy/lightsail/state/</code>, Nginx 로그</td>
+          <td>재생성 가능 여부와 감사/장애 분석 필요 기간 확인</td>
+        </tr>
+        <tr>
+          <td>제외 가능</td>
+          <td><code>.venv/</code>, <code>node_modules/</code>, <code>ppt-renderer/node_modules/</code>, cache류</td>
+          <td>새 EC2에서 의존성 설치로 재생성. 단, lockfile은 소스와 함께 유지</td>
+        </tr>
+        <tr>
+          <td>Docker 사용 시 필수</td>
+          <td><code>/data/db.sqlite3</code>, <code>/data/media</code>, <code>/data/rendered-presentations</code>, <code>/data/user-templates</code>, certbot state</td>
+          <td>현재 운영이 Docker 방식일 때만 적용</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="page-number">2</div>
+  </section>
+
+  <section class="page">
+    <div class="header">
+      <div class="logo">SlideArchitect EC2 Migration</div>
+      <div class="meta">버전·포트·구성도</div>
+    </div>
+
+    <h2 class="section-title">5. 버전 및 포트 현황</h2>
+    <table>
+      <thead>
+        <tr><th>항목</th><th>저장소 기준</th><th>운영 서버에서 확인할 값</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Python/Django</td><td>Python 3.12+ 권장, Django 5.1.6</td><td><code>python3 --version</code>, <code>.venv/bin/python -m django --version</code></td></tr>
+        <tr><td>Gunicorn</td><td>23.0.0</td><td><code>.venv/bin/gunicorn --version</code>, systemd ExecStart</td></tr>
+        <tr><td>Node/npm</td><td>Node 20, npm, PptxGenJS 3.12.0</td><td><code>node --version</code>, <code>npm --version</code>, renderer lockfile 상태</td></tr>
+        <tr><td>Nginx</td><td>80/443 공개, 앱 로컬 프록시</td><td>Nginx 버전, server_name, proxy_pass, 인증서 경로</td></tr>
+        <tr><td>앱 포트</td><td>문서 기준 <code>127.0.0.1:8020</code></td><td><code>ss</code> 결과와 Nginx upstream 일치 여부</td></tr>
+        <tr><td>DB</td><td>SQLite 파일</td><td>DB 파일 경로, 크기, 권한, 마지막 수정일</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title">6. 구성도</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 1040 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="현재 및 EC2 목표 구성도">
+        <defs>
+          <style>
+            .box{fill:#f8faff;stroke:#2a4490;stroke-width:2;rx:10}
+            .target{fill:#eef8f2;stroke:#247a4d;stroke-width:2;rx:10}
+            .store{fill:#fff9ea;stroke:#b98418;stroke-width:2;rx:10}
+            .txt{font:18px 'Noto Sans KR',sans-serif;fill:#1f2d4d}
+            .small{font:14px 'Noto Sans KR',sans-serif;fill:#3d4b68}
+            .line{stroke:#2a4490;stroke-width:2;marker-end:url(#arrow)}
+            .line2{stroke:#247a4d;stroke-width:2;marker-end:url(#arrow2)}
+          </style>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2a4490"/></marker>
+          <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#247a4d"/></marker>
+        </defs>
+        <text x="30" y="36" class="txt">현재 구조</text>
+        <rect x="30" y="62" width="170" height="70" class="box"/><text x="58" y="94" class="txt">Cloudflare/DNS</text><text x="72" y="116" class="small">80/443</text>
+        <rect x="250" y="62" width="170" height="70" class="box"/><text x="298" y="94" class="txt">Nginx</text><text x="278" y="116" class="small">public 80/443</text>
+        <rect x="470" y="62" width="190" height="70" class="box"/><text x="512" y="94" class="txt">Gunicorn</text><text x="500" y="116" class="small">127.0.0.1:8020</text>
+        <rect x="710" y="62" width="250" height="70" class="box"/><text x="765" y="94" class="txt">Django ai_ppt</text><text x="748" y="116" class="small">OpenAI / SMTP outbound</text>
+        <line x1="200" y1="97" x2="248" y2="97" class="line"/><line x1="420" y1="97" x2="468" y2="97" class="line"/><line x1="660" y1="97" x2="708" y2="97" class="line"/>
+        <rect x="470" y="170" width="190" height="70" class="store"/><text x="512" y="202" class="txt">Node Renderer</text><text x="505" y="224" class="small">PptxGenJS</text>
+        <rect x="710" y="170" width="250" height="70" class="store"/><text x="760" y="202" class="txt">Local Data</text><text x="735" y="224" class="small">SQLite / media / PPTX</text>
+        <line x1="565" y1="132" x2="565" y2="168" class="line"/><line x1="835" y1="132" x2="835" y2="168" class="line"/>
+        <text x="30" y="306" class="txt">AWS EC2 목표 구조 초안</text>
+        <rect x="30" y="332" width="170" height="70" class="target"/><text x="58" y="365" class="txt">Cloudflare</text><text x="72" y="387" class="small">DNS/TLS 정책</text>
+        <rect x="250" y="332" width="190" height="70" class="target"/><text x="286" y="365" class="txt">EC2 Public</text><text x="280" y="387" class="small">SG 80/443, SSH 제한</text>
+        <rect x="500" y="332" width="190" height="70" class="target"/><text x="543" y="365" class="txt">App Local</text><text x="522" y="387" class="small">Gunicorn localhost</text>
+        <rect x="750" y="332" width="210" height="70" class="store"/><text x="805" y="365" class="txt">EBS/Data</text><text x="774" y="387" class="small">DB/media/rendered/templates</text>
+        <line x1="200" y1="367" x2="248" y2="367" class="line2"/><line x1="440" y1="367" x2="498" y2="367" class="line2"/><line x1="690" y1="367" x2="748" y2="367" class="line2"/>
+        <text x="250" y="438" class="small">제약: 앱 포트는 외부 공개 금지, 비밀값은 원문 문서화 금지, 데이터 경로는 EBS 스냅샷/백업 대상으로 고정</text>
+      </svg>
+    </div>
+
+    <h2 class="section-title">7. AWS EC2 목표 구성 초안</h2>
+    <table>
+      <thead>
+        <tr><th>영역</th><th>초안</th><th>결정 기준</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>컴퓨트</td><td>단일 EC2 + Ubuntu 계열 + systemd + Nginx + Gunicorn</td><td>현재 운영 문서와 가장 가까운 방식. Docker 전환은 별도 승인</td></tr>
+        <tr><td>네트워크</td><td>Security Group: 80/443 공개, 22는 관리자 IP 또는 Tailscale/VPN만</td><td>앱 포트 8020은 localhost 바인딩 유지</td></tr>
+        <tr><td>스토리지</td><td>EBS에 앱 데이터 경로 고정, 정기 스냅샷 또는 S3 보관</td><td>SQLite/업로드/PPTX 결과가 모두 파일 기반</td></tr>
+        <tr><td>배포</td><td>GitHub Actions self-hosted runner 또는 SSH 기반 배포 중 선택</td><td>현재 workflow는 runner label <code>self-hosted, ai-ppt, production</code> 조건 사용</td></tr>
+        <tr><td>관측</td><td>Nginx access/error, systemd journal, 앱 healthz 확인</td><td>이관 리허설과 컷오버 검증에 필요</td></tr>
+      </tbody>
+    </table>
+    <div class="page-number">3</div>
+  </section>
+
+  <section class="page">
+    <div class="header">
+      <div class="logo">SlideArchitect EC2 Migration</div>
+      <div class="meta">서버 담당자 실행 명령</div>
+    </div>
+
+    <h2 class="section-title">8. 서버 담당자 확인 요청 데이터</h2>
+    <ul>
+      <li>운영 서버 OS, CPU, RAM, 디스크, 파일시스템, 실제 listen 포트</li>
+      <li><code>aippt.service</code>, Nginx, Python venv, Node/npm, GitHub runner 실행 여부</li>
+      <li>SQLite DB와 사용자 파일 경로별 용량, 파일 수, 최근 수정일</li>
+      <li>현재 <code>.env</code> 키 이름 목록과 파일 권한. 값 원문은 공유하지 않음</li>
+      <li>Nginx server_name, proxy_pass, 인증서 경로, healthcheck 응답</li>
+      <li>운영 방식이 systemd인지 Docker compose인지 최종 확인</li>
+    </ul>
+
+    <h2 class="section-title">9. 서버별 구조 파악 명령</h2>
+    <h3>9-1. 공통 실행 서비스/포트</h3>
+    <pre>hostnamectl
+uname -a
+uptime
+nproc
+free -h
+df -hT
+lsblk
+ip addr show
+ip route
+ss -tulpen | egrep ':(22|80|443|8000|8020|9200|5601)\b'
+ps -eo pid,ppid,user,etime,cmd | egrep 'nginx|gunicorn|python|node|npm|docker|runner|certbot|filebeat|elastic|kibana' | grep -v grep</pre>
+
+    <h3>9-2. 버전 확인</h3>
+    <pre>python3 --version
+node --version
+npm --version
+git --version
+nginx -v
+cd /home/ubuntu/apps/ai-ppt
+.venv/bin/python -m django --version
+.venv/bin/gunicorn --version
+npm --prefix ppt-renderer --version</pre>
+
+    <h3>9-3. Nginx/Gunicorn/systemd 라우팅</h3>
+    <pre>systemctl status aippt --no-pager
+systemctl status nginx --no-pager
+systemctl cat aippt
+nginx -T 2&gt;&amp;1 | grep -nE 'server_name|listen|proxy_pass|client_max_body_size|ssl_certificate'
+journalctl -u aippt --since "14 days ago" --no-pager | tail -n 200
+journalctl -u nginx --since "14 days ago" --no-pager | tail -n 200
+curl -i http://127.0.0.1:8020/healthz/
+curl -i http://127.0.0.1/healthz/</pre>
+
+    <h3>9-4. 환경 파일 존재/권한 확인</h3>
+    <pre>find /home/ubuntu/apps/ai-ppt -maxdepth 1 -type f -name '.env' -printf '%m %u %g %s %TY-%Tm-%Td %TH:%TM %p\n'
+cd /home/ubuntu/apps/ai-ppt
+grep -nE '^(DJANGO_|OPENAI_|EMAIL_|PPT_|USER_TEMPLATE_|NGINX_|AIPPT_)' .env | sed -E 's/=(.*)$/=&lt;masked&gt;/'</pre>
+
+    <h3>9-5. DB 저장 경로/용량</h3>
+    <pre>cd /home/ubuntu/apps/ai-ppt
+find . -maxdepth 3 -type f -name '*.sqlite3' -printf '%m %u %g %s %TY-%Tm-%Td %TH:%TM %p\n'
+du -sh db.sqlite3 tmp/db.sqlite3 /data/db.sqlite3 2&gt;/dev/null
+find . /data -maxdepth 3 -type f -name '*.sqlite3' -printf '%s\t%TY-%Tm-%Td %TH:%TM\t%p\n' 2&gt;/dev/null | sort -nr</pre>
+
+    <h3>9-6. 이관 대상 파일/업로드 폴더 확인</h3>
+    <pre>cd /home/ubuntu/apps/ai-ppt
+du -sh media tmp/media rendered-presentations tmp/rendered-presentations user-templates tmp/user-templates staticfiles tmp/staticfiles /data/media /data/rendered-presentations /data/user-templates 2&gt;/dev/null
+find media tmp/media rendered-presentations tmp/rendered-presentations user-templates tmp/user-templates /data/media /data/rendered-presentations /data/user-templates -maxdepth 3 -type d -exec du -sh {} \; 2&gt;/dev/null | sort -h | tail -100
+find media tmp/media rendered-presentations tmp/rendered-presentations user-templates tmp/user-templates /data/media /data/rendered-presentations /data/user-templates -type f -printf '%s\t%TY-%Tm-%Td %TH:%TM\t%p\n' 2&gt;/dev/null | sort -nr | head -200
+find media tmp/media rendered-presentations tmp/rendered-presentations user-templates tmp/user-templates /data/media /data/rendered-presentations /data/user-templates -type f -mtime -30 -printf '%TY-%Tm-%Td %TH:%TM\t%s\t%p\n' 2&gt;/dev/null | sort | tail -100</pre>
+
+    <h3>9-7. Docker 방식 사용 여부 확인</h3>
+    <pre>docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}'
+docker volume ls
+docker compose -f /home/ubuntu/apps/ai-ppt/docker-compose.lightsail.yml ps
+docker compose -f /home/ubuntu/apps/ai-ppt/docker-compose.lightsail.yml logs --tail=120 app web certbot</pre>
+    <div class="page-number">4</div>
+  </section>
+
+  <section class="page">
+    <div class="header">
+      <div class="logo">SlideArchitect EC2 Migration</div>
+      <div class="meta">판단 절차·요청 문안</div>
+    </div>
+
+    <h2 class="section-title">10. 서버별 이관 판단 절차</h2>
+    <table>
+      <thead>
+        <tr><th>단계</th><th>판단 내용</th><th>산출물</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>운영 방식 확정: systemd 직접 실행 또는 Docker compose</td><td>서비스 목록, 포트, unit/compose 상태</td></tr>
+        <tr><td>2</td><td>데이터 경로 확정: DB, media, rendered, user templates</td><td>경로별 용량/파일 수/최근 수정일</td></tr>
+        <tr><td>3</td><td>EC2 구성 결정: 인스턴스, EBS, Security Group, 도메인 전환 방식</td><td>목표 아키텍처와 보안 그룹 표</td></tr>
+        <tr><td>4</td><td>리허설: 새 EC2에서 앱 실행, healthz, 로그인, PPT 생성/다운로드 확인</td><td>검증 로그와 실패 항목</td></tr>
+        <tr><td>5</td><td>컷오버: DNS/Cloudflare 전환, 이전 서버 읽기 전용 기간, 롤백 기준 적용</td><td>전환 시간표와 롤백 체크리스트</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title">11. 리포트 완성을 위한 추가 확인 필요 데이터</h2>
+    <ul>
+      <li>현재 운영 서버 public/private IP, OS 이미지, CPU/RAM, EBS 또는 루트 디스크 크기</li>
+      <li>Nginx 설정 전문에서 비밀값을 제외한 server block, upstream, 인증서 경로</li>
+      <li><code>aippt.service</code>의 WorkingDirectory, User, EnvironmentFile, ExecStart</li>
+      <li><code>.env</code> 키 이름 목록과 마스킹된 값 존재 여부</li>
+      <li>DB/업로드/렌더 결과 파일의 실제 크기와 보관 정책</li>
+      <li>GitHub Actions self-hosted runner를 새 EC2에 유지할지, SSH 배포로 바꿀지 결정</li>
+      <li>운영 전 정리 항목: 개발용 기본 secret-like 값 제거, 운영 <code>DJANGO_DEBUG=false</code>, HTTPS/CSRF/cookie 보안 값 확인</li>
+    </ul>
+
+    <h2 class="section-title">12. 서버 담당자에게 전달할 요청 문안</h2>
+    <div class="note">
+      안녕하세요. <code>ai_ppt</code> 서비스를 AWS EC2로 이전하기 위한 사전 점검을 진행 중입니다.
+      본 문서 9번의 명령은 서비스 재시작, 파일 수정, DB 접속, 데이터 변경 없이 현재 상태만 확인하는 읽기 전용 명령입니다.
+      실행 결과를 텍스트로 공유해 주세요. 단, <code>.env</code>, API key, password, private key, 인증서 key의 원문 값은 절대 포함하지 말고
+      키 이름과 마스킹된 상태만 공유 부탁드립니다.
+    </div>
+
+    <h2 class="section-title">13. 다음 진행 기준</h2>
+    <p>
+      서버 담당자 명령 결과가 확보되면 EC2 목표 사양, EBS 용량, 보안 그룹, 데이터 이전 범위,
+      배포 방식, 리허설 절차, DNS 전환 시간표, 롤백 기준을 확정합니다.
+      운영 서버 변경과 실제 데이터 이전은 별도 승인된 작업 계획서 기준으로 진행합니다.
+    </p>
+
+    <h3>명령 결과 해석 기준</h3>
+    <ul>
+      <li><code>ss</code>와 <code>ps</code>는 현재 실행 중인 서비스와 포트를 증명하지만, 중지된 서비스까지 증명하지는 않습니다.</li>
+      <li><code>du/find</code> 결과는 파일 기반 이관 범위를 산정하지만, 업무상 보관 필요성은 별도 정책 확인이 필요합니다.</li>
+      <li><code>systemctl cat</code>과 Nginx 설정은 실행 경로와 라우팅을 증명하지만, 비밀값 원문은 공유하지 않습니다.</li>
+      <li>Docker 명령 결과가 비어 있으면 현재 운영은 systemd 직접 실행일 가능성이 높습니다.</li>
+    </ul>
+    <div class="page-number">5</div>
+  </section>
+</body>
+</html>
